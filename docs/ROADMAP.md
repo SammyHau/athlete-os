@@ -1,0 +1,39 @@
+# Roadmap
+
+## Sprint 1 - Foundation
+- Navigation
+- Theme
+- Reusable components
+- Premium home screen
+- Project documentation
+
+## Sprint 2 - Workout System
+- Exercise library
+- Workout plans
+- Sets and repetitions
+- Rest timer
+- Progression logic
+
+## Sprint 3 - Triathlon
+- Swim, bike and run tracking
+- Weekly training calendar
+- Race planning
+- Training load overview
+
+## Sprint 4 - Strava
+- Strava login
+- Automatic activity sync
+- Activity history
+- Weekly statistics
+
+## Sprint 5 - Nutrition
+- Calorie and macro targets
+- Meal suggestions
+- Meal preparation
+- Training fuel recommendations
+
+## Sprint 6 - Coach
+- Daily recommendations
+- Recovery-based changes
+- Progress analysis
+- Race preparation
