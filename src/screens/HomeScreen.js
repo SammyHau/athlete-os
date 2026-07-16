@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { Card } from "../components/Card";
 import { SectionHeader } from "../components/SectionHeader";
+import { athlete } from "../data/mockData";
 import { colors, radius, spacing, typography } from "../theme";
 
 export function HomeScreen() {
@@ -28,7 +29,9 @@ export function HomeScreen() {
           </View>
 
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>S</Text>
+            <Text style={styles.avatarText}>
+              {athlete.profile.initial}
+            </Text>
           </View>
         </View>
 
@@ -43,14 +46,26 @@ export function HomeScreen() {
         <View style={styles.metricRow}>
           <Card style={styles.metricCard}>
             <Text style={styles.metricLabel}>RECOVERY</Text>
-            <Text style={styles.metricValue}>78</Text>
-            <Text style={styles.metricHint}>Good</Text>
+
+            <Text style={styles.metricValue}>
+              {athlete.recovery.score}
+            </Text>
+
+            <Text style={styles.metricHint}>
+              {athlete.recovery.status}
+            </Text>
           </Card>
 
           <Card style={styles.metricCard}>
             <Text style={styles.metricLabel}>TRAINING LOAD</Text>
-            <Text style={styles.metricValueSmall}>BAL</Text>
-            <Text style={styles.metricHint}>Balanced</Text>
+
+            <Text style={styles.metricValueSmall}>
+              {athlete.trainingLoad.score}
+            </Text>
+
+            <Text style={styles.metricHint}>
+              {athlete.trainingLoad.status}
+            </Text>
           </Card>
         </View>
 
@@ -59,44 +74,73 @@ export function HomeScreen() {
         <Card dark style={styles.workoutCard}>
           <View style={styles.workoutHeader}>
             <View style={styles.workoutContent}>
-              <Text style={styles.workoutType}>STRENGTH</Text>
-              <Text style={styles.workoutTitle}>Upper Body + Core</Text>
+              <Text style={styles.workoutType}>
+                {athlete.workout.type.toUpperCase()}
+              </Text>
+
+              <Text style={styles.workoutTitle}>
+                {athlete.workout.title}
+              </Text>
+
               <Text style={styles.workoutMeta}>
-                45 min - Dumbbells - Calisthenics
+                {athlete.workout.duration} min •{" "}
+                {athlete.workout.equipment}
               </Text>
             </View>
 
             <View style={styles.duration}>
-              <Text style={styles.durationValue}>45</Text>
+              <Text style={styles.durationValue}>
+                {athlete.workout.duration}
+              </Text>
+
               <Text style={styles.durationLabel}>MIN</Text>
             </View>
           </View>
 
-          <TouchableOpacity activeOpacity={0.85} style={styles.startButton}>
-            <Text style={styles.startButtonText}>START WORKOUT</Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.startButton}
+          >
+            <Text style={styles.startButtonText}>
+              START WORKOUT
+            </Text>
           </TouchableOpacity>
         </Card>
 
         <SectionHeader title="This week" action="Details" />
 
         <Card style={styles.weekCard}>
-          <WeekMetric value="2" label="Swim" />
-          <WeekMetric value="3" label="Bike" />
-          <WeekMetric value="2" label="Run" />
-          <WeekMetric value="4" label="Strength" />
+          <WeekMetric value={athlete.week.swim} label="Swim" />
+          <WeekMetric value={athlete.week.bike} label="Bike" />
+          <WeekMetric value={athlete.week.run} label="Run" />
+          <WeekMetric
+            value={athlete.week.strength}
+            label="Strength"
+          />
         </Card>
 
         <SectionHeader title="Next race" action="Calendar" />
 
         <View style={styles.raceCard}>
-          <View>
-            <Text style={styles.raceType}>SPRINT TRIATHLON</Text>
-            <Text style={styles.raceTitle}>Steinhude</Text>
-            <Text style={styles.raceMeta}>750 m - 20 km - 5 km</Text>
+          <View style={styles.raceContent}>
+            <Text style={styles.raceType}>
+              {athlete.race.type.toUpperCase()}
+            </Text>
+
+            <Text style={styles.raceTitle}>
+              {athlete.race.name}
+            </Text>
+
+            <Text style={styles.raceMeta}>
+              {athlete.race.distance}
+            </Text>
           </View>
 
           <View style={styles.countdown}>
-            <Text style={styles.countdownValue}>12</Text>
+            <Text style={styles.countdownValue}>
+              {athlete.race.days}
+            </Text>
+
             <Text style={styles.countdownLabel}>DAYS</Text>
           </View>
         </View>
@@ -314,6 +358,11 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     borderRadius: radius.xl,
     backgroundColor: colors.surfaceMuted,
+  },
+
+  raceContent: {
+    flex: 1,
+    paddingRight: spacing.lg,
   },
 
   raceType: {
