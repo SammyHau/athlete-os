@@ -1,6 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Text } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { HomeScreen } from "../screens/HomeScreen";
 import { TrainingScreen } from "../screens/TrainingScreen";
@@ -11,17 +11,8 @@ import { colors } from "../theme";
 
 const Tab = createBottomTabNavigator();
 
-function TabIcon({ symbol, focused }) {
-  return (
-    <Text
-      style={{
-        fontSize: 18,
-        opacity: focused ? 1 : 0.45,
-      }}
-    >
-      {symbol}
-    </Text>
-  );
+function TabIcon({ name, color, size }) {
+  return <Ionicons name={name} color={color} size={size} />;
 }
 
 export function AppNavigator() {
@@ -49,8 +40,12 @@ export function AppNavigator() {
           name="Home"
           component={HomeScreen}
           options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon symbol="¦" focused={focused} />
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "home" : "home-outline"}
+                color={color}
+                size={size}
+              />
             ),
           }}
         />
@@ -59,8 +54,12 @@ export function AppNavigator() {
           name="Training"
           component={TrainingScreen}
           options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon symbol="?" focused={focused} />
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "barbell" : "barbell-outline"}
+                color={color}
+                size={size}
+              />
             ),
           }}
         />
@@ -69,8 +68,12 @@ export function AppNavigator() {
           name="Plan"
           component={PlanScreen}
           options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon symbol="?" focused={focused} />
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "calendar" : "calendar-outline"}
+                color={color}
+                size={size}
+              />
             ),
           }}
         />
@@ -79,8 +82,12 @@ export function AppNavigator() {
           name="Progress"
           component={ProgressScreen}
           options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon symbol="?" focused={focused} />
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "stats-chart" : "stats-chart-outline"}
+                color={color}
+                size={size}
+              />
             ),
           }}
         />
@@ -89,8 +96,12 @@ export function AppNavigator() {
           name="Profile"
           component={ProfileScreen}
           options={{
-            tabBarIcon: ({ focused }) => (
-              <TabIcon symbol="?" focused={focused} />
+            tabBarIcon: ({ focused, color, size }) => (
+              <TabIcon
+                name={focused ? "person" : "person-outline"}
+                color={color}
+                size={size}
+              />
             ),
           }}
         />

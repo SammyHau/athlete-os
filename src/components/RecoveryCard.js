@@ -6,7 +6,7 @@ import { colors, spacing, typography } from "../theme";
 export function RecoveryCard({ recovery }) {
   return (
     <Card style={styles.card}>
-      <Text style={styles.label}>RECOVERY</Text>
+      <Text style={styles.label}>ERHOLUNG</Text>
       <Text style={styles.value}>{recovery.score}</Text>
       <Text style={styles.status}>{recovery.status}</Text>
     </Card>

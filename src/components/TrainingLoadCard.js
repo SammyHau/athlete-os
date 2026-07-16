@@ -6,7 +6,7 @@ import { colors, typography } from "../theme";
 export function TrainingLoadCard({ trainingLoad }) {
   return (
     <Card style={styles.card}>
-      <Text style={styles.label}>TRAINING LOAD</Text>
+      <Text style={styles.label}>BELASTUNG</Text>
       <Text style={styles.value}>{trainingLoad.score}</Text>
       <Text style={styles.status}>{trainingLoad.status}</Text>
     </Card>

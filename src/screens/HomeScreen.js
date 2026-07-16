@@ -16,6 +16,12 @@ import { WorkoutCard } from "../components/WorkoutCard";
 import { athlete } from "../data/mockData";
 import { colors, radius, spacing, typography } from "../theme";
 
+const today = new Intl.DateTimeFormat("de-DE", {
+  weekday: "long",
+  day: "2-digit",
+  month: "long",
+}).format(new Date()).toUpperCase();
+
 export function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -27,8 +33,8 @@ export function HomeScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.brand}>PERFORMANCE</Text>
-            <Text style={styles.date}>DONNERSTAG - 16. JULI</Text>
+            <Text style={styles.brand}>ATHLETEOS</Text>
+            <Text style={styles.date}>{today}</Text>
           </View>
 
           <View style={styles.avatar}>
@@ -39,10 +45,10 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>TODAY</Text>
-          <Text style={styles.heroTitle}>Ready to perform.</Text>
+          <Text style={styles.eyebrow}>HEUTE</Text>
+          <Text style={styles.heroTitle}>Bereit f{"\u00fcr"} Leistung.</Text>
           <Text style={styles.heroText}>
-            Oberkörper und Core stehen heute im Mittelpunkt.
+            Oberk{"\u00f6"}rper und Core stehen heute im Mittelpunkt.
           </Text>
         </View>
 
@@ -51,14 +57,18 @@ export function HomeScreen() {
           <TrainingLoadCard trainingLoad={athlete.trainingLoad} />
         </View>
 
-        <SectionHeader title="Today" action="Edit" />
+        <SectionHeader title="Heute" action="Bearbeiten" />
         <WorkoutCard workout={athlete.workout} />
 
-        <SectionHeader title="This week" action="Details" />
+        <SectionHeader title="Diese Woche" action="Details" />
         <WeeklyOverview week={athlete.week} />
 
-        <SectionHeader title="Next race" action="Calendar" />
-        <RaceCard race={athlete.race} />
+        <SectionHeader title={"N\u00e4chste Rennen"} action="Kalender" />
+        <View style={styles.raceList}>
+          {athlete.races.map((race) => (
+            <RaceCard key={race.name} race={race} />
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,5 +146,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     marginBottom: spacing.xxl,
+  },
+
+  raceList: {
+    gap: spacing.md,
   },
 });

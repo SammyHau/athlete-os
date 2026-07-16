@@ -6,10 +6,10 @@ import { colors, spacing, typography } from "../theme";
 export function WeeklyOverview({ week }) {
   return (
     <Card style={styles.card}>
-      <WeekMetric value={week.swim} label="Swim" />
-      <WeekMetric value={week.bike} label="Bike" />
-      <WeekMetric value={week.run} label="Run" />
-      <WeekMetric value={week.strength} label="Strength" />
+      <WeekMetric value={week.swim} label="Schwimmen" />
+      <WeekMetric value={week.bike} label="Rad" />
+      <WeekMetric value={week.run} label="Laufen" />
+      <WeekMetric value={week.strength} label="Kraft" />
     </Card>
   );
 }

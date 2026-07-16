@@ -37,7 +37,7 @@ export function WorkoutCard({ workout, onStart }) {
         style={styles.button}
         onPress={onStart}
       >
-        <Text style={styles.buttonText}>START WORKOUT</Text>
+        <Text style={styles.buttonText}>TRAINING STARTEN</Text>
       </TouchableOpacity>
     </Card>
   );
