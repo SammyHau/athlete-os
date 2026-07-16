@@ -1,15 +1,18 @@
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "../components/Card";
+import { RaceCard } from "../components/RaceCard";
+import { RecoveryCard } from "../components/RecoveryCard";
 import { SectionHeader } from "../components/SectionHeader";
+import { TrainingLoadCard } from "../components/TrainingLoadCard";
+import { WeeklyOverview } from "../components/WeeklyOverview";
+import { WorkoutCard } from "../components/WorkoutCard";
 import { athlete } from "../data/mockData";
 import { colors, radius, spacing, typography } from "../theme";
 
@@ -44,117 +47,20 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.metricRow}>
-          <Card style={styles.metricCard}>
-            <Text style={styles.metricLabel}>RECOVERY</Text>
-
-            <Text style={styles.metricValue}>
-              {athlete.recovery.score}
-            </Text>
-
-            <Text style={styles.metricHint}>
-              {athlete.recovery.status}
-            </Text>
-          </Card>
-
-          <Card style={styles.metricCard}>
-            <Text style={styles.metricLabel}>TRAINING LOAD</Text>
-
-            <Text style={styles.metricValueSmall}>
-              {athlete.trainingLoad.score}
-            </Text>
-
-            <Text style={styles.metricHint}>
-              {athlete.trainingLoad.status}
-            </Text>
-          </Card>
+          <RecoveryCard recovery={athlete.recovery} />
+          <TrainingLoadCard trainingLoad={athlete.trainingLoad} />
         </View>
 
         <SectionHeader title="Today" action="Edit" />
-
-        <Card dark style={styles.workoutCard}>
-          <View style={styles.workoutHeader}>
-            <View style={styles.workoutContent}>
-              <Text style={styles.workoutType}>
-                {athlete.workout.type.toUpperCase()}
-              </Text>
-
-              <Text style={styles.workoutTitle}>
-                {athlete.workout.title}
-              </Text>
-
-              <Text style={styles.workoutMeta}>
-                {athlete.workout.duration} min •{" "}
-                {athlete.workout.equipment}
-              </Text>
-            </View>
-
-            <View style={styles.duration}>
-              <Text style={styles.durationValue}>
-                {athlete.workout.duration}
-              </Text>
-
-              <Text style={styles.durationLabel}>MIN</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.startButton}
-          >
-            <Text style={styles.startButtonText}>
-              START WORKOUT
-            </Text>
-          </TouchableOpacity>
-        </Card>
+        <WorkoutCard workout={athlete.workout} />
 
         <SectionHeader title="This week" action="Details" />
-
-        <Card style={styles.weekCard}>
-          <WeekMetric value={athlete.week.swim} label="Swim" />
-          <WeekMetric value={athlete.week.bike} label="Bike" />
-          <WeekMetric value={athlete.week.run} label="Run" />
-          <WeekMetric
-            value={athlete.week.strength}
-            label="Strength"
-          />
-        </Card>
+        <WeeklyOverview week={athlete.week} />
 
         <SectionHeader title="Next race" action="Calendar" />
-
-        <View style={styles.raceCard}>
-          <View style={styles.raceContent}>
-            <Text style={styles.raceType}>
-              {athlete.race.type.toUpperCase()}
-            </Text>
-
-            <Text style={styles.raceTitle}>
-              {athlete.race.name}
-            </Text>
-
-            <Text style={styles.raceMeta}>
-              {athlete.race.distance}
-            </Text>
-          </View>
-
-          <View style={styles.countdown}>
-            <Text style={styles.countdownValue}>
-              {athlete.race.days}
-            </Text>
-
-            <Text style={styles.countdownLabel}>DAYS</Text>
-          </View>
-        </View>
+        <RaceCard race={athlete.race} />
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function WeekMetric({ value, label }) {
-  return (
-    <View style={styles.weekMetric}>
-      <Text style={styles.weekValue}>{value}</Text>
-      <Text style={styles.weekLabel}>{label}</Text>
-    </View>
   );
 }
 
@@ -230,172 +136,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     marginBottom: spacing.xxl,
-  },
-
-  metricCard: {
-    flex: 1,
-    minHeight: 145,
-    justifyContent: "space-between",
-  },
-
-  metricLabel: {
-    ...typography.label,
-    color: colors.textMuted,
-  },
-
-  metricValue: {
-    fontSize: 38,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-
-  metricValueSmall: {
-    fontSize: 30,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-
-  metricHint: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-
-  workoutCard: {
-    marginBottom: spacing.xxl,
-  },
-
-  workoutHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: spacing.lg,
-  },
-
-  workoutContent: {
-    flex: 1,
-  },
-
-  workoutType: {
-    ...typography.label,
-    color: colors.accent,
-    marginBottom: spacing.md,
-  },
-
-  workoutTitle: {
-    ...typography.headline,
-    color: colors.white,
-  },
-
-  workoutMeta: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: spacing.md,
-  },
-
-  duration: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.pill,
-    backgroundColor: "#282828",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  durationValue: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.white,
-  },
-
-  durationLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: colors.textMuted,
-  },
-
-  startButton: {
-    height: 58,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.accent,
-    marginTop: spacing.xxl,
-  },
-
-  startButtonText: {
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 1.4,
-    color: colors.black,
-  },
-
-  weekCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: spacing.xxl,
-  },
-
-  weekMetric: {
-    alignItems: "center",
-  },
-
-  weekValue: {
-    fontSize: 27,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-
-  weekLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-
-  raceCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: spacing.xl,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surfaceMuted,
-  },
-
-  raceContent: {
-    flex: 1,
-    paddingRight: spacing.lg,
-  },
-
-  raceType: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-
-  raceTitle: {
-    ...typography.title,
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
-  },
-
-  raceMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-
-  countdown: {
-    alignItems: "center",
-  },
-
-  countdownValue: {
-    fontSize: 36,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-
-  countdownLabel: {
-    fontSize: 8,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    color: colors.textSecondary,
   },
 });
