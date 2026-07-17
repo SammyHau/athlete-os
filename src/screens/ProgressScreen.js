@@ -6,12 +6,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AnalyticsBar } from "../components/AnalyticsBar";
 import { Card } from "../components/Card";
 import { SectionHeader } from "../components/SectionHeader";
+import { RecoveryHistory } from "../components/RecoveryHistory";
 import { TrainingStateView } from "../components/TrainingStateView";
+import { useRecovery } from "../context/RecoveryContext";
+import { useIntegrations } from "../context/IntegrationContext";
 import { useTraining } from "../context/TrainingContext";
-import { sportMeta, statusMeta } from "../data/trainingPlan";
+import { sportMeta, statusMeta, toISODate } from "../data/trainingPlan";
 import { colors, radius, spacing, typography } from "../theme";
 import {
   formatMinutes,
+  addDays,
   getConsistency,
   getIntensityDistribution,
   getPeriodSessions,
@@ -21,6 +25,20 @@ import {
   safePercent,
   summarizeSessions,
 } from "../utils/trainingAnalytics";
+import {
+  getLoadReadinessDescription,
+  getRecoveryHistory,
+  summarizeRecovery,
+} from "../utils/recoveryAnalytics";
+import {
+  formatActivityDistance,
+  formatActivityDuration,
+  getActivitiesInRange,
+  getActivitySportDistribution,
+  getAverageRunPace,
+  getActivitySportLabel,
+  summarizeActivities,
+} from "../utils/activityAnalytics";
 
 const periods = [
   { days: 7, label: "7 Tage" },
@@ -30,6 +48,8 @@ const periods = [
 
 export function ProgressScreen() {
   const { sessions, isLoading, error, reloadTrainingPlan } = useTraining();
+  const recovery = useRecovery();
+  const integration = useIntegrations();
   const [period, setPeriod] = useState(28);
   const analytics = useMemo(() => {
     const selected = getPeriodSessions(sessions, period);
@@ -46,8 +66,19 @@ export function ProgressScreen() {
     1,
     ...analytics.trend.map((item) => item.plannedMinutes),
   );
+  const recoveryHistory = useMemo(
+    () => getRecoveryHistory(recovery.checkIns, sessions, recovery.settings, 7),
+    [recovery.checkIns, recovery.settings, sessions],
+  );
+  const recoverySummary = summarizeRecovery(recoveryHistory);
+  const loadReadinessDescription = getLoadReadinessDescription(recoveryHistory, sessions);
+  const activityStart = toISODate(addDays(new Date(), -(period - 1)));
+  const periodActivities = getActivitiesInRange(integration.activities, activityStart, toISODate(new Date()));
+  const actualSummary = summarizeActivities(periodActivities);
+  const actualSports = getActivitySportDistribution(periodActivities);
+  const averageRunPace = getAverageRunPace(periodActivities);
 
-  if (isLoading) {
+  if (isLoading || recovery.isLoading) {
     return <TrainingStateView loading />;
   }
 
@@ -62,6 +93,25 @@ export function ProgressScreen() {
         </Text>
 
         {error ? <TrainingStateView compact error={error} onRetry={reloadTrainingPlan} /> : null}
+        {recovery.error ? <TrainingStateView compact error={recovery.error} onRetry={recovery.reloadRecovery} /> : null}
+
+        <SectionHeader title="Recovery · 7 Tage" />
+        <Card style={styles.recoveryCard}>
+          {recoverySummary.count ? (
+            <>
+              <RecoveryHistory history={recoveryHistory} />
+              <View style={styles.recoveryMetrics}>
+                <RecoveryMetric value={recoverySummary.count} label="Check-ins" />
+                <RecoveryMetric value={formatMinutes(recoverySummary.averageSleepMinutes)} label="Ø Schlaf" />
+                <RecoveryMetric value={`${recoverySummary.averageSleepQuality} / 5`} label="Ø Schlafqualität" />
+                <RecoveryMetric value={`${recoverySummary.averageStress} / 5`} label="Ø Stress" />
+              </View>
+              {loadReadinessDescription ? <Text style={styles.recoveryDescription}>{loadReadinessDescription}</Text> : <Text style={styles.recoveryHint}>Für eine belastbare Verlaufsaussage werden mindestens vier Check-ins benötigt.</Text>}
+            </>
+          ) : (
+            <Text style={styles.recoveryHint}>Noch keine Check-ins in den letzten sieben Tagen. Ohne Eingaben werden keine Readiness-Werte erzeugt.</Text>
+          )}
+        </Card>
 
         <View style={styles.segmented} accessibilityRole="tablist">
           {periods.map((item) => (
@@ -92,6 +142,24 @@ export function ProgressScreen() {
           <Metric value={analytics.summary.skippedCount} label="Ausgelassen" />
           <Metric value={analytics.summary.totalCount} label="Einheiten gesamt" />
         </View>
+
+        <SectionHeader title="Tatsächlich absolviert" />
+        <Card style={styles.cardContent}>
+          {periodActivities.length ? (
+            <>
+              <View style={styles.actualMetrics}>
+                <RecoveryMetric value={actualSummary.count} label="Aktivitäten" />
+                <RecoveryMetric value={formatActivityDuration(actualSummary.durationSeconds)} label="Reale Dauer" />
+                <RecoveryMetric value={formatActivityDistance(actualSummary.distanceMeters) ?? "–"} label="Distanz" />
+                <RecoveryMetric value={actualSummary.elevationGainMeters ? `${Math.round(actualSummary.elevationGainMeters)} m` : "–"} label="Höhenmeter" />
+                {actualSummary.averageHeartRate ? <RecoveryMetric value={`${actualSummary.averageHeartRate} bpm`} label="Ø Herzfrequenz" /> : null}
+                {actualSummary.averagePower ? <RecoveryMetric value={`${actualSummary.averagePower} W`} label="Ø Leistung" /> : null}
+                {averageRunPace ? <RecoveryMetric value={averageRunPace} label="Ø Laufpace" /> : null}
+              </View>
+              {actualSports.map((item) => <AnalyticsBar key={item.sport} label={getActivitySportLabel(item.sport)} value={`${item.count} · ${formatActivityDuration(item.durationSeconds)}`} percentage={actualSummary.durationSeconds ? Math.round(item.durationSeconds / actualSummary.durationSeconds * 100) : 0} />)}
+            </>
+          ) : <EmptyAnalytics text="Im gewählten Zeitraum sind noch keine tatsächlichen Aktivitäten synchronisiert." />}
+        </Card>
 
         <SectionHeader title="Sportarten" />
         <Card style={styles.cardContent}>
@@ -179,12 +247,24 @@ function EmptyAnalytics({ text }) {
   return <Text style={styles.emptyText}>{text}</Text>;
 }
 
+function RecoveryMetric({ value, label }) {
+  return <View style={styles.recoveryMetric}><Text style={styles.recoveryValue}>{value}</Text><Text style={styles.recoveryLabel}>{label}</Text></View>;
+}
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.huge },
   label: { ...typography.label, color: colors.textSecondary },
   title: { ...typography.headline, marginTop: spacing.xs, color: colors.textPrimary },
   intro: { ...typography.body, maxWidth: 360, marginTop: spacing.md, color: colors.textSecondary },
+  recoveryCard: { marginTop: spacing.md, marginBottom: spacing.xxl },
+  recoveryMetrics: { flexDirection: "row", flexWrap: "wrap", rowGap: spacing.lg, marginTop: spacing.lg },
+  actualMetrics: { flexDirection: "row", flexWrap: "wrap", rowGap: spacing.lg },
+  recoveryMetric: { width: "50%" },
+  recoveryValue: { fontSize: 16, lineHeight: 21, fontWeight: "800", color: colors.textPrimary },
+  recoveryLabel: { fontSize: 11, lineHeight: 15, marginTop: spacing.xs, color: colors.textSecondary },
+  recoveryDescription: { ...typography.caption, marginTop: spacing.lg, color: colors.textPrimary },
+  recoveryHint: { ...typography.caption, color: colors.textSecondary },
   segmented: {
     minHeight: 48,
     flexDirection: "row",

@@ -12,6 +12,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TrainingDetailModal } from "../components/TrainingDetailModal";
+import { ActivityCard } from "../components/ActivityCard";
 import { TrainingFormModal } from "../components/TrainingFormModal";
 import { TrainingSessionCard } from "../components/TrainingSessionCard";
 import { TrainingStateView } from "../components/TrainingStateView";
@@ -19,6 +20,7 @@ import { TrainingSummary } from "../components/TrainingSummary";
 import { TrainingWeekNavigation } from "../components/TrainingWeekNavigation";
 import { TrainingWeekPicker } from "../components/TrainingWeekPicker";
 import { useTraining } from "../context/TrainingContext";
+import { useIntegrations } from "../context/IntegrationContext";
 import {
   addWeeks,
   createEmptyTrainingSession,
@@ -30,6 +32,7 @@ import { parseISODate } from "../utils/trainingAnalytics";
 import { colors, radius, spacing, typography } from "../theme";
 
 export function TrainingScreen({ navigation, route }) {
+  const integration = useIntegrations();
   const {
     sessions,
     isLoading,
@@ -59,6 +62,9 @@ export function TrainingScreen({ navigation, route }) {
   const selectedSessions = weekSessions.filter(
     (session) => session.date === selectedDate,
   ).sort((a, b) => a.title.localeCompare(b.title, "de"));
+  const selectedActivities = integration.activities.filter(
+    (activity) => activity.startDate === selectedDate && activity.syncStatus !== "deleted",
+  );
   const selectedSession = sessions.find(
     (session) => session.id === selectedSessionId,
   ) ?? null;
@@ -236,6 +242,7 @@ export function TrainingScreen({ navigation, route }) {
               <TrainingSessionCard
                 key={session.id}
                 session={session}
+                linkedActivity={selectedActivities.find((activity) => activity.plannedSessionId === session.id) ?? null}
                 onPress={() => setSelectedSessionId(session.id)}
               />
             ))}
@@ -255,6 +262,15 @@ export function TrainingScreen({ navigation, route }) {
             </Text>
           </View>
         )}
+
+        {selectedActivities.length ? (
+          <View style={styles.actualSection}>
+            <Text style={styles.dayEyebrow}>TATSÄCHLICH ABSOLVIERT</Text>
+            <View style={styles.sessionList}>
+              {selectedActivities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
 
       <TrainingDetailModal
@@ -375,6 +391,7 @@ const styles = StyleSheet.create({
   sessionList: {
     gap: spacing.md,
   },
+  actualSection: { gap: spacing.md, marginTop: spacing.xxl },
   emptyState: {
     minHeight: 220,
     alignItems: "center",

@@ -4,15 +4,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { sportMeta, statusMeta } from "../data/trainingPlan";
 import { colors, radius, spacing, typography } from "../theme";
 
-export function TrainingSessionCard({ session, onPress }) {
+export function TrainingSessionCard({ session, onPress, linkedActivity = null }) {
   const sport = sportMeta[session.sport];
   const status = statusMeta[session.status];
-  const completed = session.status === "completed";
+  const completed = session.status === "completed" || Boolean(linkedActivity);
+  const visibleStatus = linkedActivity ? "Mit Aktivität verknüpft" : status.label;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${sport.label}: ${session.title}, ${session.durationMinutes} Minuten, ${status.label}`}
+      accessibilityLabel={`${sport.label}: ${session.title}, ${session.durationMinutes} Minuten, ${visibleStatus}`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
@@ -32,13 +33,14 @@ export function TrainingSessionCard({ session, onPress }) {
         <View style={styles.topline}>
           <Text style={styles.sport}>{sport.label.toUpperCase()}</Text>
           <Text style={[styles.status, completed && styles.statusCompleted]}>
-            {status.label}
+            {visibleStatus}
           </Text>
         </View>
         <Text style={styles.title}>{session.title}</Text>
         <Text style={styles.meta}>
           {session.durationMinutes} min · {session.intensity}
           {session.source ? ` · ${session.source}` : ""}
+          {linkedActivity ? ` · ${linkedActivity.provider === "strava" ? "Strava" : "Demo"}` : ""}
         </Text>
       </View>
 

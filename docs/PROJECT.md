@@ -41,4 +41,32 @@ Samuel Haußmann
 - Training changes remain local to one device and have no account sync or conflict resolution.
 - Storage migration currently recognizes version 1; future versions need an explicit migration branch.
 - Dates are entered as local ISO calendar dates without a separate time or timezone field.
-- Recovery and training-load values on Home remain explicitly marked local demo values.
+
+## Recovery Architecture
+
+- `RecoveryProvider` owns validated daily check-ins and editable Recovery settings independently from training persistence.
+- `recoveryStorage.js` persists a versioned `{ version, checkIns, settings }` envelope under `athleteos.recovery.v1`.
+- `recoveryAnalytics.js` calculates transparent Readiness factors and estimated load from completed training sessions without copying training state.
+- Home exposes the daily check-in and Recovery details; Progress shows honest seven-day Recovery history; Profile owns sleep-goal and personal-baseline settings.
+- Missing check-ins never produce synthetic Readiness values. Optional resting-heart-rate and HRV values require seven earlier personal values before affecting a score.
+
+## Local Recovery Limits
+
+- Readiness supports training decisions but is not a medical diagnosis.
+- Estimated load uses duration, sport, and intensity because RPE and power data are not available yet.
+- Recovery data remains local and has no account sync.
+
+## Integration Architecture
+
+- `IntegrationProvider` selects a contract-compatible `local` demo or `strava` provider and exposes connection, sync, status, results, and offline activities.
+- Normalized actual activities are persisted separately under `athleteos.activities.v1`; planned sessions remain unchanged and can be linked through `plannedSessionId`.
+- The Node backend owns OAuth state, authorization-code exchange, rotating tokens, deauthorization, athlete access, pagination, rate-limit metadata, sync, and explicit stream retrieval.
+- Strava secrets and tokens never enter the Expo bundle or mobile AsyncStorage.
+- The first sync covers at most 90 days. Incremental sync overlaps one day to capture changes, while provider and external ID prevent duplicates.
+- Missing activities are retained for offline visibility. Production webhooks will mark deleted or unavailable Strava activities explicitly.
+
+## Local Integration Limits
+
+- The demo provider uses only artificial activities tagged as `local`.
+- The local backend listens on loopback and uses an in-memory token/activity store plus a development user header.
+- Production requires HTTPS, authenticated sessions, encrypted token persistence, a database repository, fixed redirect allowlists, and Strava webhooks.

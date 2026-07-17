@@ -6,18 +6,6 @@ export const athlete = {
     initial: "S",
   },
 
-  recovery: {
-    score: 95,
-    status: "Hervorragend",
-    source: "Lokaler Demo-Wert",
-  },
-
-  trainingLoad: {
-    score: 840,
-    status: "Hoch",
-    source: "Lokaler Demo-Wert",
-  },
-
   workout: {
     title: "Morgenlauf",
     duration: 60,

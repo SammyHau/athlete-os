@@ -1,15 +1,21 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RaceCard } from "../components/RaceCard";
-import { RecoveryCard } from "../components/RecoveryCard";
+import { EstimatedLoadCard } from "../components/EstimatedLoadCard";
+import { ActivityCard } from "../components/ActivityCard";
+import { RecoveryCheckInModal } from "../components/RecoveryCheckInModal";
+import { RecoveryDetailModal } from "../components/RecoveryDetailModal";
+import { RecoveryScoreCard } from "../components/RecoveryScoreCard";
 import { SectionHeader } from "../components/SectionHeader";
-import { TrainingLoadCard } from "../components/TrainingLoadCard";
 import { TrainingSessionCard } from "../components/TrainingSessionCard";
 import { TrainingStateView } from "../components/TrainingStateView";
 import { TrainingSummary } from "../components/TrainingSummary";
+import { useRecovery } from "../context/RecoveryContext";
+import { useIntegrations } from "../context/IntegrationContext";
 import { useTraining } from "../context/TrainingContext";
 import { athlete } from "../data/mockData";
 import { toISODate } from "../data/trainingPlan";
@@ -22,6 +28,11 @@ import {
   getSessionsForDate,
   getSessionsForWeek,
 } from "../utils/trainingAnalytics";
+import {
+  calculateReadiness,
+  getEstimatedLoad,
+  getRecoveryHistory,
+} from "../utils/recoveryAnalytics";
 
 const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   weekday: "long",
@@ -31,6 +42,10 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
 
 export function HomeScreen({ navigation }) {
   const { sessions, isLoading, error, reloadTrainingPlan } = useTraining();
+  const recovery = useRecovery();
+  const integration = useIntegrations();
+  const [checkInVisible, setCheckInVisible] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
   const now = new Date();
   const today = toISODate(now);
   const todaySessions = getSessionsForDate(sessions, today);
@@ -45,6 +60,12 @@ export function HomeScreen({ navigation }) {
     0,
   );
   const upcomingRaces = athlete.races.filter((race) => race.dateISO >= today);
+  const todayCheckIn = recovery.checkIns.find((item) => item.date === today) ?? null;
+  const readiness = calculateReadiness(todayCheckIn, recovery.checkIns, sessions, recovery.settings);
+  const estimatedLoad = getEstimatedLoad(sessions, now);
+  const recoveryHistory = getRecoveryHistory(recovery.checkIns, sessions, recovery.settings, 7, now);
+  const todayActivities = integration.activities.filter((item) => item.startDate === today && item.syncStatus !== "deleted");
+  const latestActivity = integration.activities.find((item) => item.syncStatus !== "deleted") ?? null;
 
   function openTraining(date = today, sessionId = null) {
     navigation.navigate(
@@ -53,7 +74,7 @@ export function HomeScreen({ navigation }) {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || recovery.isLoading) {
     return <TrainingStateView loading />;
   }
 
@@ -84,6 +105,9 @@ export function HomeScreen({ navigation }) {
         </View>
 
         {error ? <TrainingStateView compact error={error} onRetry={reloadTrainingPlan} /> : null}
+        {recovery.error ? <TrainingStateView compact error={recovery.error} onRetry={recovery.reloadRecovery} /> : null}
+
+        <IntegrationStatus integration={integration} />
 
         <SectionHeader
           title={todaySessions.length ? "Heutiges Training" : "Nächste Einheit"}
@@ -135,6 +159,18 @@ export function HomeScreen({ navigation }) {
           </View>
         ) : null}
 
+        {todayActivities.length ? (
+          <>
+            <SectionHeader title="Heute absolviert" />
+            <View style={styles.sessionList}>{todayActivities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}</View>
+          </>
+        ) : latestActivity ? (
+          <>
+            <SectionHeader title="Letzte synchronisierte Aktivität" />
+            <ActivityCard activity={latestActivity} />
+          </>
+        ) : null}
+
         <View style={styles.quickActions}>
           <QuickAction
             icon="barbell-outline"
@@ -153,13 +189,15 @@ export function HomeScreen({ navigation }) {
           <TrainingSummary sessions={weekSessions} />
         </View>
 
-        <SectionHeader title="Lokale Demo-Werte" />
-        <Text style={styles.demoNote}>
-          Erholung und Belastung sind Beispieldaten und keine Messwerte eines Geräts.
-        </Text>
+        <SectionHeader title="Recovery" />
         <View style={styles.metricRow}>
-          <RecoveryCard recovery={athlete.recovery} />
-          <TrainingLoadCard trainingLoad={athlete.trainingLoad} />
+          <RecoveryScoreCard
+            readiness={readiness}
+            hasCheckIn={Boolean(todayCheckIn)}
+            onOpen={() => setDetailVisible(true)}
+            onCheckIn={() => setCheckInVisible(true)}
+          />
+          <EstimatedLoadCard load={estimatedLoad} />
         </View>
 
         <SectionHeader title="Nächste Rennen" />
@@ -169,6 +207,24 @@ export function HomeScreen({ navigation }) {
             : <Text style={styles.emptyText}>Aktuell ist kein weiterer Wettkampf hinterlegt.</Text>}
         </View>
       </ScrollView>
+      <RecoveryDetailModal
+        visible={detailVisible}
+        readiness={readiness}
+        checkIn={todayCheckIn}
+        history={recoveryHistory}
+        onClose={() => setDetailVisible(false)}
+        onEdit={() => {
+          setDetailVisible(false);
+          setCheckInVisible(true);
+        }}
+      />
+      <RecoveryCheckInModal
+        visible={checkInVisible}
+        checkIn={todayCheckIn}
+        date={today}
+        onSave={recovery.saveCheckIn}
+        onClose={() => setCheckInVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -192,6 +248,14 @@ function getGreeting(date) {
   if (hour < 11) return "Guten Morgen";
   if (hour < 18) return "Guten Tag";
   return "Guten Abend";
+}
+
+function IntegrationStatus({ integration }) {
+  const label = integration.demo ? "Strava Demo" : "Strava";
+  const status = integration.status === "syncing" ? "Synchronisierung läuft"
+    : integration.status === "synced" ? "Synchronisiert"
+      : integration.connection.connected ? "Verbunden" : "Nicht verbunden";
+  return <View style={styles.integrationStatus}><View><Text style={styles.integrationLabel}>{label}</Text><Text style={styles.integrationText}>{status}</Text></View>{integration.lastSync ? <Text style={styles.integrationTime}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(integration.lastSync))}</Text> : null}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -234,6 +298,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     color: colors.textSecondary,
   },
+  integrationStatus: { minHeight: 56, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, paddingHorizontal: spacing.lg, marginBottom: spacing.xl, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  integrationLabel: { ...typography.caption, color: colors.textPrimary },
+  integrationText: { fontSize: 11, lineHeight: 15, color: colors.textSecondary },
+  integrationTime: { fontSize: 10, lineHeight: 14, textAlign: "right", color: colors.textMuted },
   sessionList: { gap: spacing.md, marginBottom: spacing.xxl },
   nextSession: { marginTop: spacing.xxl },
   nextDate: {
@@ -294,11 +362,6 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.68 },
   summary: { marginBottom: spacing.xxl },
-  demoNote: {
-    ...typography.caption,
-    marginBottom: spacing.md,
-    color: colors.textSecondary,
-  },
   metricRow: {
     flexDirection: "row",
     gap: spacing.md,

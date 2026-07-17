@@ -5,8 +5,11 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
+    "backend": "npm --prefix backend start",
     "ios": "expo start --ios",
     "test:logic": "node scripts/check-training-logic.cjs",
+    "test:recovery": "node scripts/check-recovery-logic.cjs",
+    "test:strava": "node scripts/check-strava-logic.cjs",
     "web": "expo start --web"
   },
   "dependencies": {

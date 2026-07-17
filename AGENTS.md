@@ -23,6 +23,9 @@ https://docs.expo.dev/versions/v54.0.0/ before writing code.
 - `npm.cmd run android`: start Expo for Android
 - `npx.cmd --yes expo-doctor`: validate Expo configuration and dependencies
 - `npm.cmd run test:logic`: run training selectors, CRUD, navigation, and persistence assertions
+- `npm.cmd run test:recovery`: run recovery model, readiness, load, and persistence assertions
+- `npm.cmd run test:strava`: run OAuth, mapping, sync, duplicate, and provider assertions without real API calls
+- `npm.cmd run backend`: start the local integration backend on loopback
 - `npx.cmd expo export --platform android --output-dir .expo-test-build --clear`: create a test production bundle
 - `git diff --check`: validate patch whitespace
 
@@ -34,6 +37,10 @@ Use the `.cmd` shims in PowerShell when script execution policy blocks `npm.ps1`
 - Keep screen state immutable and derive summaries from source state.
 - Access training persistence through `useTrainingPlan`; UI components must not call AsyncStorage directly.
 - Screen components consume the app-wide training source through `useTraining`; only `TrainingProvider` instantiates `useTrainingPlan`.
+- Recovery UI consumes `useRecovery`; only `RecoveryProvider` instantiates the recovery state hook and only `recoveryStorage` accesses its AsyncStorage key.
+- Keep readiness and estimated-load weights in `src/utils/recoveryAnalytics.js`, not in UI components.
+- UI code consumes integrations through `useIntegrations`; OAuth tokens and Strava secrets must never enter `src/`, AsyncStorage, logs, or Expo public environment variables.
+- Keep actual activities separate from planned sessions and link them only through stable IDs.
 - Put reusable UI in `src/components/` and data preparation in `src/data/`.
 - Use named exports for screens, components, and data helpers.
 - Keep imports grouped: external packages, local modules, then theme/data as appropriate.
