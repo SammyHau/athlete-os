@@ -75,6 +75,9 @@ function ensureConfigured() {
 function json(response, status, body) { response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); response.end(JSON.stringify(body)); }
 function redirect(response, location) { response.writeHead(302, { location, "cache-control": "no-store" }); response.end(); }
 
-if (require.main === module) server.listen(config.port, "127.0.0.1", () => console.log(`AthleteOS Backend läuft auf http://127.0.0.1:${config.port}`));
+if (require.main === module) server.listen(config.port, config.host, () => {
+  console.log(`AthleteOS Backend läuft lokal auf ${config.host}:${config.port}.`);
+  console.log("Für den Smartphone-Test die vom Vorbereitungsskript ausgegebene WLAN-URL verwenden.");
+});
 
 module.exports = { client, oauthCallback, server, stateStore, tokenService };

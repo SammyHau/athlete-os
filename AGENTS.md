@@ -25,7 +25,9 @@ https://docs.expo.dev/versions/v54.0.0/ before writing code.
 - `npm.cmd run test:logic`: run training selectors, CRUD, navigation, and persistence assertions
 - `npm.cmd run test:recovery`: run recovery model, readiness, load, and persistence assertions
 - `npm.cmd run test:strava`: run OAuth, mapping, sync, duplicate, and provider assertions without real API calls
-- `npm.cmd run backend`: start the local integration backend on loopback
+- `npm.cmd run backend`: start the local integration backend on the configured development host
+- `powershell.exe -ExecutionPolicy Bypass -File .\scripts\prepare-strava-local.ps1`: print safe LAN URLs and validate local env presence without exposing secrets
+- `powershell.exe -ExecutionPolicy Bypass -File .\scripts\start-athleteos-dev.ps1`: start the LAN backend and Expo in separate PowerShell windows
 - `npx.cmd expo export --platform android --output-dir .expo-test-build --clear`: create a test production bundle
 - `git diff --check`: validate patch whitespace
 

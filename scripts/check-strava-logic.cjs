@@ -29,6 +29,7 @@ const { StravaSyncService } = require("../backend/src/syncService.cjs");
 const { InMemoryActivityRepository } = require("../backend/src/activityRepository.cjs");
 const { InMemoryTokenStore, isTokenExpired } = require("../backend/src/tokenStore.cjs");
 const { TokenService } = require("../backend/src/tokenService.cjs");
+const { validateMobileRedirect } = require("../backend/src/validation.cjs");
 const serverModule = require("../backend/src/server.cjs");
 const { reconcileActivities, findPlannedSession } = require("../src/services/activityRepository");
 const { normalizeActivity } = require("../src/data/activity");
@@ -71,6 +72,8 @@ async function run() {
   check(stateStore.consume(state, 201), null, "OAuth-State kann nicht wiederverwendet werden");
   const expiredState = stateStore.create("user-1", "athleteos://integration/strava", 100);
   check(stateStore.consume(expiredState, 1200), null, "Abgelaufener OAuth-State wird abgelehnt");
+  check(validateMobileRedirect("exp://192.168.2.100:8081/--/integration/strava", "athleteos://integration/strava"), "exp://192.168.2.100:8081/--/integration/strava", "Privater Expo-Go-Redirect wird akzeptiert");
+  check(validateMobileRedirect("https://evil.example/integration/strava", "athleteos://integration/strava"), null, "Externer Mobile-Redirect wird abgelehnt");
 
   const deniedState = serverModule.stateStore.create("callback-user", "athleteos://integration/strava");
   const deniedResponse = redirectResponse();

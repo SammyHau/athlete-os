@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking } from "react-native";
+import * as Linking from "expo-linking";
 
 import { createLocalProvider } from "../integrations/local/localProvider";
 import { assertIntegrationProvider } from "../integrations/providerContract";
@@ -47,8 +47,14 @@ export function useIntegrationsState(sessions) {
   useEffect(() => {
     if (provider.demo) return undefined;
     function handleCallback(url) {
-      if (!url.startsWith("athleteos://integration/strava")) return;
-      const result = new URL(url).searchParams.get("status");
+      let callbackUrl;
+      try {
+        callbackUrl = new URL(url);
+      } catch {
+        return;
+      }
+      if (!callbackUrl.pathname.endsWith("/integration/strava") && callbackUrl.pathname !== "/strava") return;
+      const result = callbackUrl.searchParams.get("status");
       if (result === "connected") refreshStatus();
       else {
         setStatus(result === "cancelled" ? "disconnected" : "error");

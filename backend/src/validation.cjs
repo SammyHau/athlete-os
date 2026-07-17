@@ -9,7 +9,18 @@ function requireUserId(request) {
 }
 
 function validateMobileRedirect(value, allowedRedirect) {
-  return !value || value === allowedRedirect ? allowedRedirect : null;
+  if (!value || value === allowedRedirect) return allowedRedirect;
+  try {
+    const url = new URL(value);
+    const privateIpv4 = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname);
+    const exactPath = url.pathname === "/--/integration/strava" || url.pathname === "/integration/strava";
+    const validPort = !url.port || (Number(url.port) > 0 && Number(url.port) <= 65535);
+    return ["exp:", "exps:"].includes(url.protocol) && privateIpv4 && exactPath && validPort
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseJson(request, maximumBytes = 16384) {

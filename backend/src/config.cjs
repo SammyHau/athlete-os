@@ -14,6 +14,7 @@ loadLocalEnv();
 
 const config = {
   port: Number(process.env.PORT) || 8787,
+  host: process.env.HOST || "0.0.0.0",
   clientId: process.env.STRAVA_CLIENT_ID || "",
   clientSecret: process.env.STRAVA_CLIENT_SECRET || "",
   redirectUri: process.env.STRAVA_REDIRECT_URI || "",

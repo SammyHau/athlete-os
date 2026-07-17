@@ -1,4 +1,4 @@
-import { Linking } from "react-native";
+import * as Linking from "expo-linking";
 
 import { normalizeActivity } from "../../data/activity";
 import { integrationRequest } from "./stravaApi";
@@ -8,7 +8,8 @@ export function createStravaProvider() {
     id: "strava",
     demo: false,
     async connect() {
-      const result = await integrationRequest("/integrations/strava/oauth/start?mobileRedirect=athleteos%3A%2F%2Fintegration%2Fstrava");
+      const mobileRedirect = Linking.createURL("integration/strava");
+      const result = await integrationRequest(`/integrations/strava/oauth/start?mobileRedirect=${encodeURIComponent(mobileRedirect)}`);
       await Linking.openURL(result.authorizationUrl);
       return { connected: false, pending: true };
     },
