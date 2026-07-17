@@ -1,3 +1,5 @@
+import { races } from "./races";
+
 export const athlete = {
   profile: {
     name: "Samuel",
@@ -7,11 +9,13 @@ export const athlete = {
   recovery: {
     score: 95,
     status: "Hervorragend",
+    source: "Lokaler Demo-Wert",
   },
 
   trainingLoad: {
     score: 840,
     status: "Hoch",
+    source: "Lokaler Demo-Wert",
   },
 
   workout: {
@@ -28,20 +32,5 @@ export const athlete = {
     strength: 2,
   },
 
-  races: [
-    {
-      type: "Sprintdistanz",
-      name: "Steinhuder Meer",
-      date: "25. Juli 2026",
-      dateISO: "2026-07-25",
-      distance: "0,75 km \u2022 20 km \u2022 5 km",
-    },
-    {
-      type: "Olympische Distanz",
-      name: "Maschsee Triathlon",
-      date: "5. September 2026",
-      dateISO: "2026-09-05",
-      distance: "1,5 km \u2022 38,2 km \u2022 10 km",
-    },
-  ],
+  races,
 };

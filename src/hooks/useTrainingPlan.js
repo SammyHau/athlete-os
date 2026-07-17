@@ -21,40 +21,35 @@ export function useTrainingPlan() {
   const saveQueue = useRef(Promise.resolve());
   const sessionsRef = useRef([]);
 
-  useEffect(() => {
-    let active = true;
-
-    async function hydrate() {
-      const result = await loadTrainingSessions();
-      if (result.status === "invalid") {
-        try {
-          await resetTrainingSessions();
-        } catch (resetError) {
-          console.error("Beschädigte Trainingsdaten konnten nicht entfernt werden.", resetError);
-        }
+  const reloadTrainingPlan = useCallback(async () => {
+    setIsLoading(true);
+    const result = await loadTrainingSessions();
+    if (result.status === "invalid") {
+      try {
+        await resetTrainingSessions();
+      } catch (resetError) {
+        console.error("Beschädigte Trainingsdaten konnten nicht entfernt werden.", resetError);
       }
-      if (!active) {
-        return;
-      }
-
-      const hydratedSessions = result.status === "loaded"
-        ? result.sessions
-        : createDemoTrainingPlan();
-      sessionsRef.current = hydratedSessions;
-      setSessions(hydratedSessions);
-      setError(
-        result.status === "invalid"
-          ? "Gespeicherte Daten waren beschädigt. Demo-Daten wurden geladen."
-          : null,
-      );
-      setIsLoading(false);
     }
 
-    hydrate();
-    return () => {
-      active = false;
-    };
+    const hydratedSessions = result.status === "loaded"
+      ? result.sessions
+      : createDemoTrainingPlan();
+    sessionsRef.current = hydratedSessions;
+    setSessions(hydratedSessions);
+    setError(
+      result.status === "invalid"
+        ? "Gespeicherte Daten waren beschädigt. Demo-Daten wurden geladen."
+        : result.status === "error"
+          ? "Die lokalen Trainingsdaten konnten nicht gelesen werden."
+          : null,
+    );
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    reloadTrainingPlan();
+  }, [reloadTrainingPlan]);
 
   const persist = useCallback((nextSessions) => {
     saveQueue.current = saveQueue.current
@@ -128,6 +123,7 @@ export function useTrainingPlan() {
     deleteSession,
     duplicateSession,
     toggleSessionStatus,
-    reset,
+    resetTrainingPlan: reset,
+    reloadTrainingPlan,
   };
 }

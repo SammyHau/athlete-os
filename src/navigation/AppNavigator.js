@@ -40,6 +40,7 @@ export function AppNavigator() {
           name="Home"
           component={HomeScreen}
           options={{
+            tabBarLabel: "Start",
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
                 name={focused ? "home" : "home-outline"}
@@ -54,6 +55,7 @@ export function AppNavigator() {
           name="Training"
           component={TrainingScreen}
           options={{
+            tabBarLabel: "Training",
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
                 name={focused ? "barbell" : "barbell-outline"}
@@ -68,6 +70,7 @@ export function AppNavigator() {
           name="Plan"
           component={PlanScreen}
           options={{
+            tabBarLabel: "Plan",
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
                 name={focused ? "calendar" : "calendar-outline"}
@@ -82,6 +85,7 @@ export function AppNavigator() {
           name="Progress"
           component={ProgressScreen}
           options={{
+            tabBarLabel: "Fortschritt",
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
                 name={focused ? "stats-chart" : "stats-chart-outline"}
@@ -96,6 +100,7 @@ export function AppNavigator() {
           name="Profile"
           component={ProfileScreen}
           options={{
+            tabBarLabel: "Profil",
             tabBarIcon: ({ focused, color, size }) => (
               <TabIcon
                 name={focused ? "person" : "person-outline"}

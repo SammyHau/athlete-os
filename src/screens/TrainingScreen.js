@@ -1,7 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -15,19 +14,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TrainingDetailModal } from "../components/TrainingDetailModal";
 import { TrainingFormModal } from "../components/TrainingFormModal";
 import { TrainingSessionCard } from "../components/TrainingSessionCard";
+import { TrainingStateView } from "../components/TrainingStateView";
 import { TrainingSummary } from "../components/TrainingSummary";
 import { TrainingWeekNavigation } from "../components/TrainingWeekNavigation";
 import { TrainingWeekPicker } from "../components/TrainingWeekPicker";
+import { useTraining } from "../context/TrainingContext";
 import {
   addWeeks,
   createEmptyTrainingSession,
   getWeekDates,
+  isISODate,
   toISODate,
 } from "../data/trainingPlan";
-import { useTrainingPlan } from "../hooks/useTrainingPlan";
+import { parseISODate } from "../utils/trainingAnalytics";
 import { colors, radius, spacing, typography } from "../theme";
 
-export function TrainingScreen() {
+export function TrainingScreen({ navigation, route }) {
   const {
     sessions,
     isLoading,
@@ -37,11 +39,13 @@ export function TrainingScreen() {
     deleteSession,
     duplicateSession,
     toggleSessionStatus,
-  } = useTrainingPlan();
+    reloadTrainingPlan,
+  } = useTraining();
   const [weekReference, setWeekReference] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()));
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [formState, setFormState] = useState(null);
+  const lastRequestId = useRef(null);
   const weekDates = useMemo(
     () => getWeekDates(weekReference),
     [weekReference],
@@ -59,6 +63,27 @@ export function TrainingScreen() {
     (session) => session.id === selectedSessionId,
   ) ?? null;
   const selectedDay = weekDates.find((day) => day.isoDate === selectedDate)?.date;
+
+  useEffect(() => {
+    const request = route.params;
+    if (
+      isLoading
+      || !request?.requestId
+      || request.requestId === lastRequestId.current
+      || !isISODate(request.selectedDate)
+    ) {
+      return;
+    }
+
+    lastRequestId.current = request.requestId;
+    setWeekReference(parseISODate(request.selectedDate));
+    setSelectedDate(request.selectedDate);
+    setSelectedSessionId(
+      request.sessionId && sessions.some((item) => item.id === request.sessionId)
+        ? request.sessionId
+        : null,
+    );
+  }, [isLoading, route.params, sessions]);
 
   function changeWeek(amount) {
     const selectedIndex = Math.max(
@@ -137,13 +162,7 @@ export function TrainingScreen() {
   }
 
   if (isLoading) {
-    return (
-      <SafeAreaView style={styles.loading}>
-        <StatusBar style="dark" />
-        <ActivityIndicator color={colors.textPrimary} />
-        <Text style={styles.loadingText}>Trainingsplan wird geladen</Text>
-      </SafeAreaView>
-    );
+    return <TrainingStateView loading />;
   }
 
   return (
@@ -170,7 +189,7 @@ export function TrainingScreen() {
           <Text style={styles.addButtonText}>Einheit hinzufügen</Text>
         </Pressable>
 
-        {error ? <Text style={styles.errorBanner}>{error}</Text> : null}
+        {error ? <TrainingStateView compact error={error} onRetry={reloadTrainingPlan} /> : null}
 
         <TrainingWeekNavigation
           days={weekDates}
@@ -188,6 +207,15 @@ export function TrainingScreen() {
 
         <View style={styles.summarySection}>
           <TrainingSummary sessions={weekSessions} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Trainingsfortschritt öffnen"
+            onPress={() => navigation.navigate("Progress")}
+            style={({ pressed }) => [styles.progressLink, pressed && styles.pressed]}
+          >
+            <Text style={styles.progressLinkText}>Fortschritt ansehen</Text>
+            <Ionicons name="arrow-forward" size={18} color={colors.textPrimary} />
+          </Pressable>
         </View>
 
         <View style={styles.dayHeader}>
@@ -269,17 +297,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  loading: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-    backgroundColor: colors.background,
-  },
-  loadingText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
   content: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
@@ -308,14 +325,6 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.68,
   },
-  errorBanner: {
-    ...typography.caption,
-    marginTop: spacing.lg,
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    color: colors.danger,
-    backgroundColor: colors.surface,
-  },
   label: {
     ...typography.label,
     color: colors.textSecondary,
@@ -328,6 +337,19 @@ const styles = StyleSheet.create({
   summarySection: {
     marginTop: spacing.lg,
   },
+  progressLink: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  progressLinkText: { ...typography.caption, color: colors.textPrimary },
   dayHeader: {
     flexDirection: "row",
     alignItems: "flex-end",

@@ -27,7 +27,7 @@ export async function loadTrainingSessions() {
     return { status: "loaded", sessions };
   } catch (error) {
     console.error("Trainingsdaten konnten nicht geladen werden.", error);
-    return { status: "invalid", sessions: null };
+    return { status: "error", sessions: null };
   }
 }
 

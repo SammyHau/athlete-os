@@ -22,6 +22,7 @@ https://docs.expo.dev/versions/v54.0.0/ before writing code.
 - `npm.cmd start`: start the Expo development server on Windows
 - `npm.cmd run android`: start Expo for Android
 - `npx.cmd --yes expo-doctor`: validate Expo configuration and dependencies
+- `npm.cmd run test:logic`: run training selectors, CRUD, navigation, and persistence assertions
 - `npx.cmd expo export --platform android --output-dir .expo-test-build --clear`: create a test production bundle
 - `git diff --check`: validate patch whitespace
 
@@ -32,6 +33,7 @@ Use the `.cmd` shims in PowerShell when script execution policy blocks `npm.ps1`
 - Use JavaScript and functional React components; do not add TypeScript.
 - Keep screen state immutable and derive summaries from source state.
 - Access training persistence through `useTrainingPlan`; UI components must not call AsyncStorage directly.
+- Screen components consume the app-wide training source through `useTraining`; only `TrainingProvider` instantiates `useTrainingPlan`.
 - Put reusable UI in `src/components/` and data preparation in `src/data/`.
 - Use named exports for screens, components, and data helpers.
 - Keep imports grouped: external packages, local modules, then theme/data as appropriate.

@@ -17,6 +17,7 @@
 ## Sprint 3 - Triathlon
 - Swim, bike and run tracking
 - Weekly training planner V2 (local CRUD, persistence, and week navigation complete)
+- Connected Core V1 (shared Home, Training, four-week Plan, and Progress analytics complete)
 - Race planning
 - Training load overview
 
@@ -25,6 +26,7 @@
 - Automatic activity sync
 - Activity history
 - Weekly statistics
+- Replace local training repository with authenticated sync while retaining the current provider contract
 
 ## Sprint 5 - Nutrition
 - Calorie and macro targets
