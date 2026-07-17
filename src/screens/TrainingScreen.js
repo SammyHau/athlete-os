@@ -1,50 +1,149 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TrainingDetailModal } from "../components/TrainingDetailModal";
+import { TrainingFormModal } from "../components/TrainingFormModal";
 import { TrainingSessionCard } from "../components/TrainingSessionCard";
 import { TrainingSummary } from "../components/TrainingSummary";
+import { TrainingWeekNavigation } from "../components/TrainingWeekNavigation";
 import { TrainingWeekPicker } from "../components/TrainingWeekPicker";
 import {
-  createDemoTrainingPlan,
-  getCalendarWeek,
+  addWeeks,
+  createEmptyTrainingSession,
   getWeekDates,
   toISODate,
 } from "../data/trainingPlan";
+import { useTrainingPlan } from "../hooks/useTrainingPlan";
 import { colors, radius, spacing, typography } from "../theme";
 
 export function TrainingScreen() {
-  const [sessions, setSessions] = useState(() => createDemoTrainingPlan());
+  const {
+    sessions,
+    isLoading,
+    error,
+    createSession,
+    updateSession,
+    deleteSession,
+    duplicateSession,
+    toggleSessionStatus,
+  } = useTrainingPlan();
+  const [weekReference, setWeekReference] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()));
   const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const weekDates = useMemo(() => getWeekDates(), []);
-  const today = toISODate(new Date());
-  const selectedSessions = sessions.filter(
-    (session) => session.date === selectedDate,
+  const [formState, setFormState] = useState(null);
+  const weekDates = useMemo(
+    () => getWeekDates(weekReference),
+    [weekReference],
   );
+  const today = toISODate(new Date());
+  const weekStart = weekDates[0].isoDate;
+  const weekEnd = weekDates[6].isoDate;
+  const weekSessions = sessions.filter(
+    (session) => session.date >= weekStart && session.date <= weekEnd,
+  );
+  const selectedSessions = weekSessions.filter(
+    (session) => session.date === selectedDate,
+  ).sort((a, b) => a.title.localeCompare(b.title, "de"));
   const selectedSession = sessions.find(
     (session) => session.id === selectedSessionId,
   ) ?? null;
   const selectedDay = weekDates.find((day) => day.isoDate === selectedDate)?.date;
 
-  function toggleSelectedSession() {
-    if (!selectedSessionId) {
+  function changeWeek(amount) {
+    const selectedIndex = Math.max(
+      0,
+      weekDates.findIndex((day) => day.isoDate === selectedDate),
+    );
+    const nextReference = addWeeks(weekDates[0].date, amount);
+    const nextDays = getWeekDates(nextReference);
+    setWeekReference(nextReference);
+    setSelectedDate(nextDays[selectedIndex].isoDate);
+    setSelectedSessionId(null);
+  }
+
+  function goToCurrentWeek() {
+    const now = new Date();
+    setWeekReference(now);
+    setSelectedDate(toISODate(now));
+    setSelectedSessionId(null);
+  }
+
+  function openCreateForm() {
+    setFormState({
+      mode: "create",
+      session: createEmptyTrainingSession(selectedDate),
+    });
+  }
+
+  function openEditForm() {
+    if (!selectedSession) {
       return;
     }
+    setFormState({ mode: "edit", session: selectedSession });
+    setSelectedSessionId(null);
+  }
 
-    setSessions((current) => current.map((session) => {
-      if (session.id !== selectedSessionId) {
-        return session;
-      }
+  function openDuplicateForm() {
+    if (!selectedSession) {
+      return;
+    }
+    const draft = duplicateSession(selectedSession.id);
+    if (draft) {
+      setFormState({ mode: "duplicate", session: draft });
+      setSelectedSessionId(null);
+    }
+  }
 
-      return {
-        ...session,
-        status: session.status === "completed" ? "planned" : "completed",
-      };
-    }));
+  function saveForm(draft) {
+    const saved = formState.mode === "edit"
+      ? updateSession(formState.session.id, draft)
+      : createSession(draft);
+    if (saved) {
+      setFormState(null);
+    }
+  }
+
+  function confirmDelete() {
+    if (!selectedSession) {
+      return;
+    }
+    const session = selectedSession;
+    Alert.alert(
+      "Einheit löschen?",
+      `„${session.title}“ wird dauerhaft aus deinem Trainingsplan entfernt.`,
+      [
+        { text: "Abbrechen", style: "cancel" },
+        {
+          text: "Löschen",
+          style: "destructive",
+          onPress: () => {
+            deleteSession(session.id);
+            setSelectedSessionId(null);
+          },
+        },
+      ],
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loading}>
+        <StatusBar style="dark" />
+        <ActivityIndicator color={colors.textPrimary} />
+        <Text style={styles.loadingText}>Trainingsplan wird geladen</Text>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -56,18 +155,29 @@ export function TrainingScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.label}>DEINE WOCHE</Text>
+            <Text style={styles.label}>TRAININGSPLANER</Text>
             <Text style={styles.title}>Training</Text>
-          </View>
-          <View style={styles.weekBadge}>
-            <Text style={styles.weekBadgeLabel}>KW</Text>
-            <Text style={styles.weekBadgeValue}>{getCalendarWeek(weekDates[0].date)}</Text>
           </View>
         </View>
 
-        <Text style={styles.weekRange}>
-          {formatWeekRange(weekDates)}
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Einheit hinzufügen"
+          onPress={openCreateForm}
+          style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+        >
+          <Ionicons name="add" size={22} color={colors.black} />
+          <Text style={styles.addButtonText}>Einheit hinzufügen</Text>
+        </Pressable>
+
+        {error ? <Text style={styles.errorBanner}>{error}</Text> : null}
+
+        <TrainingWeekNavigation
+          days={weekDates}
+          onPrevious={() => changeWeek(-1)}
+          onNext={() => changeWeek(1)}
+          onToday={goToCurrentWeek}
+        />
 
         <TrainingWeekPicker
           days={weekDates}
@@ -77,7 +187,7 @@ export function TrainingScreen() {
         />
 
         <View style={styles.summarySection}>
-          <TrainingSummary sessions={sessions} />
+          <TrainingSummary sessions={weekSessions} />
         </View>
 
         <View style={styles.dayHeader}>
@@ -123,25 +233,23 @@ export function TrainingScreen() {
         session={selectedSession}
         visible={Boolean(selectedSession)}
         onClose={() => setSelectedSessionId(null)}
-        onToggleStatus={toggleSelectedSession}
+        onToggleStatus={() => toggleSessionStatus(selectedSessionId)}
+        onEdit={openEditForm}
+        onDuplicate={openDuplicateForm}
+        onDelete={confirmDelete}
       />
+
+      {formState ? (
+        <TrainingFormModal
+          visible
+          mode={formState.mode}
+          initialSession={formState.session}
+          onCancel={() => setFormState(null)}
+          onSave={saveForm}
+        />
+      ) : null}
     </SafeAreaView>
   );
-}
-
-function formatWeekRange(weekDates) {
-  const start = weekDates[0].date;
-  const end = weekDates[6].date;
-  const startText = new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "short",
-  }).format(start);
-  const endText = new Intl.DateTimeFormat("de-DE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(end);
-  return `${startText} – ${endText}`;
 }
 
 function formatSelectedDay(date, isToday) {
@@ -161,6 +269,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  loading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.md,
+    backgroundColor: colors.background,
+  },
+  loadingText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
   content: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
@@ -171,6 +290,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  addButton: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+  },
+  addButtonText: {
+    ...typography.caption,
+    color: colors.black,
+  },
+  pressed: {
+    opacity: 0.68,
+  },
+  errorBanner: {
+    ...typography.caption,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    color: colors.danger,
+    backgroundColor: colors.surface,
+  },
   label: {
     ...typography.label,
     color: colors.textSecondary,
@@ -179,32 +324,6 @@ const styles = StyleSheet.create({
     ...typography.headline,
     color: colors.textPrimary,
     marginTop: spacing.xs,
-  },
-  weekBadge: {
-    width: 52,
-    height: 52,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.pill,
-    backgroundColor: colors.black,
-  },
-  weekBadgeLabel: {
-    fontSize: 8,
-    lineHeight: 10,
-    fontWeight: "800",
-    color: colors.textMuted,
-  },
-  weekBadgeValue: {
-    fontSize: 17,
-    lineHeight: 20,
-    fontWeight: "800",
-    color: colors.white,
-  },
-  weekRange: {
-    ...typography.caption,
-    marginTop: spacing.md,
-    marginBottom: spacing.xl,
-    color: colors.textSecondary,
   },
   summarySection: {
     marginTop: spacing.lg,

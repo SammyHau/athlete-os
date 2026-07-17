@@ -12,6 +12,8 @@ https://docs.expo.dev/versions/v54.0.0/ before writing code.
 - `src/screens/`: tab-level screens and screen state
 - `src/components/`: reusable presentational components
 - `src/data/`: local demo data and data-model helpers
+- `src/hooks/`: screen-facing state and domain operations
+- `src/services/`: persistence and external data adapters
 - `src/theme/`: colors, spacing, radius, and typography tokens
 - `docs/`: product, design, and roadmap documentation
 
@@ -29,6 +31,7 @@ Use the `.cmd` shims in PowerShell when script execution policy blocks `npm.ps1`
 
 - Use JavaScript and functional React components; do not add TypeScript.
 - Keep screen state immutable and derive summaries from source state.
+- Access training persistence through `useTrainingPlan`; UI components must not call AsyncStorage directly.
 - Put reusable UI in `src/components/` and data preparation in `src/data/`.
 - Use named exports for screens, components, and data helpers.
 - Keep imports grouped: external packages, local modules, then theme/data as appropriate.

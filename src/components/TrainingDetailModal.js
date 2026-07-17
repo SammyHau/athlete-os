@@ -24,6 +24,9 @@ export function TrainingDetailModal({
   visible,
   onClose,
   onToggleStatus,
+  onEdit,
+  onDuplicate,
+  onDelete,
 }) {
   if (!session) {
     return null;
@@ -103,6 +106,43 @@ export function TrainingDetailModal({
           {session.source ? (
             <Text style={styles.source}>Quelle: {session.source}</Text>
           ) : null}
+
+          <View style={styles.managementActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Training bearbeiten"
+              onPress={onEdit}
+              style={({ pressed }) => [
+                styles.managementButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
+              <Text style={styles.managementText}>Bearbeiten</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Training duplizieren"
+              onPress={onDuplicate}
+              style={({ pressed }) => [
+                styles.managementButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="copy-outline" size={20} color={colors.textPrimary} />
+              <Text style={styles.managementText}>Duplizieren</Text>
+            </Pressable>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Einheit löschen"
+            onPress={onDelete}
+            style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            <Text style={styles.deleteText}>Einheit löschen</Text>
+          </Pressable>
         </ScrollView>
 
         <View style={styles.footer}>
@@ -280,6 +320,40 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginTop: spacing.xxl,
     color: colors.textMuted,
+  },
+  managementActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xxl,
+  },
+  managementButton: {
+    minHeight: 52,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  managementText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+  },
+  deleteButton: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  deleteText: {
+    ...typography.caption,
+    color: colors.danger,
   },
   footer: {
     paddingHorizontal: spacing.xl,

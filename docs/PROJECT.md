@@ -25,6 +25,16 @@ Samuel Haußmann
 
 - `src/data/trainingPlan.js` creates a local demo plan for the current calendar week.
 - Training sessions use stable IDs, ISO dates, normalized sport and status values, structured blocks, and source metadata.
-- `TrainingScreen` owns temporary session state and derives daily lists, completed minutes, and weekly progress from it.
+- `useTrainingPlan` owns session state, immutable CRUD operations, loading, and serialized persistence writes.
 - Training cards and the detail modal are reusable presentation components.
-- The local data factory can later be replaced by a repository connected to a backend, Garmin, or Strava without changing the UI contract.
+- `TrainingFormModal` handles validated creation, editing, moving, and draft duplication, including structured blocks.
+- `trainingStorage.js` persists a versioned `{ version, sessions }` envelope under `athleteos.trainingPlan.v1` using AsyncStorage.
+- Missing storage uses dynamic demo data without an initial write. Invalid storage falls back safely and logs the error.
+- Calendar navigation supports previous, next, and current weeks while keeping Monday as the first day.
+- The storage service can later be replaced by a repository connected to a backend, Garmin, or Strava without changing the UI contract.
+
+## Local Training Limits
+
+- Training changes remain local to one device and have no account sync or conflict resolution.
+- Storage migration currently recognizes version 1; future versions need an explicit migration branch.
+- Dates are entered as local ISO calendar dates without a separate time or timezone field.

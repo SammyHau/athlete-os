@@ -16,7 +16,7 @@
 
 ## Sprint 3 - Triathlon
 - Swim, bike and run tracking
-- Weekly training calendar (MVP complete with local demo data)
+- Weekly training planner V2 (local CRUD, persistence, and week navigation complete)
 - Race planning
 - Training load overview
 

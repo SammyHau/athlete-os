@@ -1,5 +1,18 @@
 const DAY_IN_MS = 86400000;
 
+export const sports = [
+  "swim",
+  "bike",
+  "run",
+  "strength",
+  "mobility",
+  "recovery",
+];
+
+export const statuses = ["planned", "completed", "skipped"];
+
+export const intensities = ["Sehr locker", "Locker", "Moderat", "Hoch"];
+
 export const sportMeta = {
   swim: { label: "Schwimmen", icon: "water-outline" },
   bike: { label: "Radfahren", icon: "bicycle-outline" },
@@ -14,6 +27,180 @@ export const statusMeta = {
   completed: { label: "Erledigt" },
   skipped: { label: "Ausgelassen" },
 };
+
+export function isISODate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day;
+}
+
+export function normalizeTrainingSession(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const durationMinutes = Number(value.durationMinutes);
+  const normalizedDuration = Math.round(durationMinutes);
+  if (
+    typeof value.id !== "string"
+    || !value.id.trim()
+    || !isISODate(value.date)
+    || !sports.includes(value.sport)
+    || typeof value.title !== "string"
+    || !value.title.trim()
+    || !Number.isFinite(durationMinutes)
+    || normalizedDuration <= 0
+    || !intensities.includes(value.intensity)
+    || !statuses.includes(value.status)
+    || !Array.isArray(value.blocks)
+  ) {
+    return null;
+  }
+
+  return {
+    id: value.id.trim(),
+    date: value.date,
+    sport: value.sport,
+    title: value.title.trim(),
+    durationMinutes: normalizedDuration,
+    intensity: value.intensity,
+    status: value.status,
+    source: typeof value.source === "string" ? value.source.trim() : "",
+    description: typeof value.description === "string"
+      ? value.description.trim()
+      : "",
+    blocks: value.blocks.map((block) => ({
+      title: typeof block?.title === "string" ? block.title.trim() : "",
+      detail: typeof block?.detail === "string" ? block.detail.trim() : "",
+    })),
+    notes: typeof value.notes === "string" ? value.notes.trim() : "",
+  };
+}
+
+export function normalizeTrainingSessions(values) {
+  if (!Array.isArray(values)) {
+    return null;
+  }
+
+  const sessions = values.map(normalizeTrainingSession);
+  if (sessions.some((item) => item === null)) {
+    return null;
+  }
+
+  const ids = new Set(sessions.map((item) => item.id));
+  return ids.size === sessions.length ? sessions : null;
+}
+
+export function validateTrainingDraft(value) {
+  const errors = {};
+  if (!isISODate(value.date)) {
+    errors.date = "Bitte ein gültiges Datum im Format JJJJ-MM-TT eingeben.";
+  }
+  if (!sports.includes(value.sport)) {
+    errors.sport = "Bitte eine Sportart auswählen.";
+  }
+  if (typeof value.title !== "string" || !value.title.trim()) {
+    errors.title = "Bitte einen Titel eingeben.";
+  }
+  const duration = Number(value.durationMinutes);
+  if (!Number.isFinite(duration) || Math.round(duration) <= 0) {
+    errors.durationMinutes = "Die Dauer muss größer als 0 Minuten sein.";
+  }
+  if (!intensities.includes(value.intensity)) {
+    errors.intensity = "Bitte eine Intensität auswählen.";
+  }
+  if (!statuses.includes(value.status)) {
+    errors.status = "Bitte einen Status auswählen.";
+  }
+  return errors;
+}
+
+export function insertTrainingSession(sessions, draft, id) {
+  let nextId = id ?? createTrainingId();
+  while (!id && sessions.some((item) => item.id === nextId)) {
+    nextId = createTrainingId();
+  }
+  if (sessions.some((item) => item.id === nextId)) {
+    return null;
+  }
+  const session = normalizeTrainingSession({ ...draft, id: nextId });
+  return session ? [...sessions, session] : null;
+}
+
+export function replaceTrainingSession(sessions, id, changes) {
+  if (!sessions.some((item) => item.id === id)) {
+    return null;
+  }
+  const session = normalizeTrainingSession({ ...changes, id });
+  return session
+    ? sessions.map((item) => (item.id === id ? session : item))
+    : null;
+}
+
+export function removeTrainingSession(sessions, id) {
+  return sessions.filter((item) => item.id !== id);
+}
+
+export function toggleTrainingStatus(sessions, id) {
+  return sessions.map((item) => (
+    item.id === id
+      ? {
+        ...item,
+        status: item.status === "completed" ? "planned" : "completed",
+      }
+      : item
+  ));
+}
+
+export function createDuplicateDraft(session) {
+  if (!session) {
+    return null;
+  }
+  return {
+    date: session.date,
+    sport: session.sport,
+    title: `${session.title} (Kopie)`,
+    durationMinutes: session.durationMinutes,
+    intensity: session.intensity,
+    status: "planned",
+    source: session.source,
+    description: session.description,
+    blocks: session.blocks.map((block) => ({ ...block })),
+    notes: session.notes,
+  };
+}
+
+export function createTrainingId() {
+  return `training-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function createEmptyTrainingSession(date = toISODate(new Date())) {
+  return {
+    date,
+    sport: "run",
+    title: "",
+    durationMinutes: 45,
+    intensity: "Locker",
+    status: "planned",
+    source: "AthleteOS",
+    description: "",
+    blocks: [],
+    notes: "",
+  };
+}
+
+export function addWeeks(date, amount) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + amount * 7);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
 
 export function toISODate(date) {
   const year = date.getFullYear();
