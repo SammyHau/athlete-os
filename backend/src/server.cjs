@@ -3,6 +3,7 @@ const http = require("node:http");
 const { InMemoryActivityRepository } = require("./activityRepository.cjs");
 const { StravaDetailService } = require("./detailService.cjs");
 const { EncryptedFileRepository } = require("./encryptedFileRepository.cjs");
+const { parseTokenEncryptionKey, tokenEncryptionKeyError } = require("./encryptionKey.cjs");
 const { config, getMissingStravaConfig } = require("./config.cjs");
 const { OAuthStateStore } = require("./oauthStateStore.cjs");
 const { StravaClient } = require("./stravaClient.cjs");
@@ -13,7 +14,8 @@ const { requireUserId, validateMobileRedirect } = require("./validation.cjs");
 const { InMemoryWebhookQueue, validateWebhookEvent } = require("./webhookService.cjs");
 
 const client = new StravaClient(config);
-const persistentRepository = config.tokenEncryptionKey ? new EncryptedFileRepository(config.repositoryFile, config.tokenEncryptionKey) : null;
+const encryptionKeyStatus = parseTokenEncryptionKey(config.tokenEncryptionKey);
+const persistentRepository = encryptionKeyStatus.valid ? new EncryptedFileRepository(config.repositoryFile, config.tokenEncryptionKey) : null;
 const tokenStore = persistentRepository || new InMemoryTokenStore();
 const tokenService = new TokenService(tokenStore, client);
 const stateStore = new OAuthStateStore(config.stateTtlMs);
@@ -95,9 +97,16 @@ function json(response, status, body) { response.writeHead(status, { "content-ty
 function redirect(response, location) { response.writeHead(302, { location, "cache-control": "no-store" }); response.end(); }
 async function readJson(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); if (chunks.reduce((sum, chunk) => sum + chunk.length, 0) > 65536) throw Object.assign(new Error("Anfrage ist zu groß."), { statusCode: 413 }); try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw Object.assign(new Error("Ungültiges JSON."), { statusCode: 400 }); } }
 
-if (require.main === module) server.listen(config.port, config.host, () => {
-  console.log(`AthleteOS Backend läuft lokal auf ${config.host}:${config.port}.`);
-  console.log("Für den Smartphone-Test die vom Vorbereitungsskript ausgegebene WLAN-URL verwenden.");
-});
+if (require.main === module) {
+  if (!encryptionKeyStatus.valid) {
+    console.error(tokenEncryptionKeyError(encryptionKeyStatus));
+    process.exitCode = 1;
+  } else {
+    server.listen(config.port, config.host, () => {
+      console.log(`AthleteOS Backend läuft lokal auf ${config.host}:${config.port}.`);
+      console.log("Für den Smartphone-Test die vom Vorbereitungsskript ausgegebene WLAN-URL verwenden.");
+    });
+  }
+}
 
 module.exports = { client, oauthCallback, server, stateStore, tokenService };

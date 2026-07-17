@@ -6,7 +6,7 @@ import { assertIntegrationProvider } from "../integrations/providerContract";
 import { createConfiguredProvider } from "../integrations/providerFactory";
 import { integrationRequest } from "../integrations/strava/stravaApi";
 import { parseStravaCallback } from "../integrations/strava/oauthCallback";
-import { reconcileActivities } from "../services/activityRepository";
+import { filterActivitiesForIntegrationMode, reconcileActivities } from "../services/activityRepository";
 import { linkActivity } from "../utils/activityMatching";
 import { loadActivities, saveActivities } from "../services/activityStorage";
 import { loadActivityDetail, resetActivityDetails, saveActivityDetail } from "../services/activityDetailStorage";
@@ -43,9 +43,11 @@ export function useIntegrationsState(sessions) {
     let active = true;
     loadActivities().then((stored) => {
       if (!active) return;
-      activitiesRef.current = stored.activities;
-      setActivities(stored.activities);
+      const modeActivities = filterActivitiesForIntegrationMode(stored.activities, integrationMode);
+      activitiesRef.current = modeActivities;
+      setActivities(modeActivities);
       setLastSync(stored.lastSync);
+      if (modeActivities.length !== stored.activities.length) saveActivities(modeActivities, stored.lastSync).catch(() => setError("Veraltete Demo-Aktivitäten konnten nicht aus dem lokalen Cache entfernt werden."));
       if (stored.status === "invalid") setError("Gespeicherte Aktivitätsdaten waren beschädigt und wurden verworfen.");
       refreshStatus();
     });
@@ -102,7 +104,9 @@ export function useIntegrationsState(sessions) {
     setStatus("syncing"); setError(null);
     try {
       const remote = await provider.syncActivities();
-      const reconciled = reconcileActivities(activitiesRef.current, remote.activities || [], sessions);
+      const incoming = filterActivitiesForIntegrationMode(remote.activities || [], integrationMode);
+      const current = filterActivitiesForIntegrationMode(activitiesRef.current, integrationMode);
+      const reconciled = reconcileActivities(current, incoming, sessions);
       const syncTime = remote.lastSuccessfulSync || new Date().toISOString();
       await saveActivities(reconciled.activities, syncTime);
       activitiesRef.current = reconciled.activities;
@@ -155,7 +159,19 @@ export function useIntegrationsState(sessions) {
   return {
     providerId: provider.id,
     demo: provider.demo,
-    diagnostics: { mode: integrationMode || "nicht konfiguriert", apiUrl: integrationApiUrl || "nicht konfiguriert", backendReachable },
+    diagnostics: {
+      mode: integrationMode || "nicht konfiguriert",
+      apiUrl: integrationApiUrl || "nicht konfiguriert",
+      backendReachable,
+      connected: connection.connected,
+      scopes: connection.scopes || [],
+      lastSync,
+      backfillStatus: syncState?.status ?? (syncState?.backfillComplete ? "complete" : syncState ? "fortsetzbar" : "unbekannt"),
+      importedCount: syncState?.importedCount ?? activities.filter((activity) => activity.provider === "strava").length,
+      oldestImportedAt: syncState?.oldestImportedAt ?? activities.filter((activity) => activity.provider === "strava").map((activity) => activity.startDateTime).sort()[0] ?? null,
+      demoActivityCount: activities.filter((activity) => activity.provider === "local").length,
+      stravaActivityCount: activities.filter((activity) => activity.provider === "strava").length,
+    },
     activities, connection, status, syncState, lastSync, lastResult, error, activityDetails, detailErrors,
     connect, disconnect, syncActivities, refreshStatus, loadActivityDetails, deleteImportedActivities, setActivityMatch, cancelBackfill,
   };

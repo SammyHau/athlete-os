@@ -95,7 +95,7 @@ Write-Host ""
 
 if (Test-Path -LiteralPath $backendEnv) {
   Write-Host "[OK] backend/.env ist vorhanden." -ForegroundColor Green
-  foreach ($name in @("STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET", "STRAVA_REDIRECT_URI", "PORT")) {
+  foreach ($name in @("STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET", "STRAVA_REDIRECT_URI", "PORT", "ATHLETEOS_TOKEN_ENCRYPTION_KEY")) {
     if (Test-EnvEntryPresent -Path $backendEnv -Name $name) {
       Write-Host "[OK] $name ist gesetzt." -ForegroundColor Green
     } else {

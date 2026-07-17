@@ -255,7 +255,8 @@ function IntegrationStatus({ integration }) {
   const status = integration.status === "syncing" ? "Synchronisierung läuft"
     : integration.status === "synced" ? "Synchronisiert"
       : integration.connection.connected ? "Verbunden" : "Nicht verbunden";
-  return <View style={styles.integrationStatus}><View><Text style={styles.integrationLabel}>{label}</Text><Text style={styles.integrationText}>{status}</Text></View>{integration.lastSync ? <Text style={styles.integrationTime}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(integration.lastSync))}</Text> : null}</View>;
+  const backfill = integration.diagnostics.backfillStatus;
+  return <View style={styles.integrationStatus}><View><Text style={styles.integrationLabel}>{label}</Text><Text style={styles.integrationText}>{status}{backfill && backfill !== "unbekannt" ? ` · Backfill ${backfill}` : ""}</Text></View>{integration.lastSync ? <Text style={styles.integrationTime}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(integration.lastSync))}</Text> : null}</View>;
 }
 
 const styles = StyleSheet.create({

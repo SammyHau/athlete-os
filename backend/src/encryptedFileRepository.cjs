@@ -1,14 +1,16 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { parseTokenEncryptionKey, tokenEncryptionKeyError } = require("./encryptionKey.cjs");
 
 const FILE_VERSION = 1;
 
 class EncryptedFileRepository {
   constructor(filePath, encryptionKey) {
-    if (!encryptionKey) throw new Error("ATHLETEOS_TOKEN_ENCRYPTION_KEY fehlt.");
+    const parsedKey = parseTokenEncryptionKey(encryptionKey);
+    if (!parsedKey.valid) throw new Error(tokenEncryptionKeyError(parsedKey));
     this.filePath = filePath;
-    this.key = crypto.scryptSync(encryptionKey, "athleteos-local-v1", 32);
+    this.key = parsedKey.bytes;
     this.data = emptyData();
     this.loaded = false;
     this.writeQueue = Promise.resolve();

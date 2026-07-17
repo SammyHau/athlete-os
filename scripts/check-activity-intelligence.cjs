@@ -13,6 +13,7 @@ require.extensions[".js"] = (module, filename) => {
 };
 
 const { EncryptedFileRepository } = require("../backend/src/encryptedFileRepository.cjs");
+const { parseTokenEncryptionKey } = require("../backend/src/encryptionKey.cjs");
 const { InMemoryActivityRepository } = require("../backend/src/activityRepository.cjs");
 const { StravaDetailService } = require("../backend/src/detailService.cjs");
 const { StravaSyncService, isRateLimitNear } = require("../backend/src/syncService.cjs");
@@ -23,6 +24,7 @@ const { normalizeWorkoutSteps, moveWorkoutStep, duplicateWorkoutStep } = require
 const { deriveTrainingZones, getPrescriptionAvailability } = require("../src/utils/trainingZones");
 const { findBestActivityMatch, linkActivity } = require("../src/utils/activityMatching");
 const { comparePlannedToActual } = require("../src/utils/workoutComparison");
+const { filterActivitiesForIntegrationMode } = require("../src/services/activityRepository");
 
 let count = 0;
 function check(actual, expected, message) { assert.deepEqual(actual, expected, message); count += 1; }
@@ -30,22 +32,31 @@ function check(actual, expected, message) { assert.deepEqual(actual, expected, m
 function raw(id, sportType = "Run", changes = {}) { return { id, athlete: { id: 7 }, name: `${sportType} Einheit`, sport_type: sportType, start_date: "2026-07-17T05:00:00Z", start_date_local: "2026-07-17T07:00:00", elapsed_time: 3600, moving_time: 3500, distance: 10000, total_elevation_gain: 80, ...changes }; }
 
 async function run() {
+  const mixedActivities = [{ provider: "local", id: "demo" }, { provider: "strava", id: "real" }];
+  check(filterActivitiesForIntegrationMode(mixedActivities, "strava").map((item) => item.id), ["real"], "Strava-Modus schließt Demo-Aktivitäten vollständig aus");
+  check(filterActivitiesForIntegrationMode(mixedActivities, "demo").map((item) => item.id), ["demo"], "Demo-Modus schließt echte Strava-Aktivitäten aus");
   const testDir = path.join(root, ".activity-intelligence-test");
   if (!testDir.startsWith(root + path.sep)) throw new Error("Ungültiges Testverzeichnis.");
   fs.rmSync(testDir, { recursive: true, force: true });
   fs.mkdirSync(testDir);
   const repositoryFile = path.join(testDir, "repository.enc.json");
-  const repository = new EncryptedFileRepository(repositoryFile, "fixture-only-encryption-key");
+  const fixtureEncryptionKey = Buffer.alloc(32, 7).toString("base64");
+  check(parseTokenEncryptionKey("").valid, false, "Fehlender Verschlüsselungsschlüssel wird abgelehnt");
+  check(parseTokenEncryptionKey("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef").valid, false, "Hex wird nicht als Base64-Schlüssel akzeptiert");
+  check(parseTokenEncryptionKey("kein-base64").valid, false, "Ungültiges Base64 wird abgelehnt");
+  check(parseTokenEncryptionKey(Buffer.alloc(16).toString("base64")).valid, false, "Zu kurzer Base64-Schlüssel wird abgelehnt");
+  check(parseTokenEncryptionKey(fixtureEncryptionKey).valid, true, "Base64 mit exakt 32 Byte wird akzeptiert");
+  const repository = new EncryptedFileRepository(repositoryFile, fixtureEncryptionKey);
   await repository.set("user", { accessToken: "fixture-access", refreshToken: "fixture-refresh", expiresAt: 9999999999, scopes: ["read", "activity:read"] });
   check((await repository.get("user")).scopes.includes("activity:read"), true, "Verschlüsselte Verbindung übersteht Repository-Neuinstanzierung");
-  const restarted = new EncryptedFileRepository(repositoryFile, "fixture-only-encryption-key");
+  const restarted = new EncryptedFileRepository(repositoryFile, fixtureEncryptionKey);
   check((await restarted.get("user")).expiresAt, 9999999999, "Backend-Neustart liest verschlüsselte Verbindung");
   await restarted.setSyncState("user", "strava", { backfillNextPage: 4, importedCount: 300 });
-  const restartedAgain = new EncryptedFileRepository(repositoryFile, "fixture-only-encryption-key");
+  const restartedAgain = new EncryptedFileRepository(repositoryFile, fixtureEncryptionKey);
   check((await restartedAgain.getSyncState("user", "strava")).backfillNextPage, 4, "Backfill-Cursor übersteht Backend-Neustart");
   check(fs.readFileSync(repositoryFile, "utf8").includes("fixture-access"), false, "Token steht nicht im Klartext in der Datei");
   fs.writeFileSync(repositoryFile, "beschädigt", "utf8");
-  const corrupted = new EncryptedFileRepository(repositoryFile, "fixture-only-encryption-key");
+  const corrupted = new EncryptedFileRepository(repositoryFile, fixtureEncryptionKey);
   check(await corrupted.get("user"), null, "Beschädigte Tokenablage fällt kontrolliert auf leeren Zustand zurück");
 
   const pages = [[raw(1), raw(2)], [raw(3)], []];

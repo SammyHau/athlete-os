@@ -3,6 +3,13 @@ import { findBestActivityMatch } from "../utils/activityMatching";
 
 const TRAINING_TO_ACTIVITY_SPORT = { run: "run", bike: "bike", swim: "swim", strength: "strength" };
 
+export function filterActivitiesForIntegrationMode(activities, mode) {
+  if (!Array.isArray(activities)) return [];
+  if (mode === "strava") return activities.filter((activity) => activity.provider === "strava");
+  if (mode === "demo") return activities.filter((activity) => activity.provider === "local");
+  return [];
+}
+
 export function reconcileActivities(existing, incoming, plannedSessions) {
   const byKey = new Map(existing.map((item) => [`${item.provider}:${item.externalId}`, item]));
   const result = { created: 0, updated: 0, skipped: 0, errors: 0, activities: [] };

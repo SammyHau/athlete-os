@@ -19,6 +19,12 @@ export function StravaConnectionCard({ integration, onConnect, onSync, onDisconn
           <Text style={styles.diagnosticText}>Modus: {integration.diagnostics.mode}</Text>
           <Text style={styles.diagnosticText}>API: {integration.diagnostics.apiUrl}</Text>
           <Text style={styles.diagnosticText}>Backend: {healthText(integration.diagnostics.backendReachable)}</Text>
+          <Text style={styles.diagnosticText}>Strava: {integration.diagnostics.connected ? "verbunden" : "nicht verbunden"}</Text>
+          <Text style={styles.diagnosticText}>Scopes: {integration.diagnostics.scopes.length ? integration.diagnostics.scopes.join(", ") : "nicht gemeldet"}</Text>
+          <Text style={styles.diagnosticText}>Letzter Sync: {formatDiagnosticDate(integration.diagnostics.lastSync)}</Text>
+          <Text style={styles.diagnosticText}>Backfill: {integration.diagnostics.backfillStatus}</Text>
+          <Text style={styles.diagnosticText}>Importiert: {integration.diagnostics.importedCount} · älteste Aktivität: {formatDiagnosticDate(integration.diagnostics.oldestImportedAt, true)}</Text>
+          <Text style={styles.diagnosticText}>Lokal: {integration.diagnostics.stravaActivityCount} Strava · {integration.diagnostics.demoActivityCount} Demo</Text>
         </View>
       ) : null}
       {connected && integration.connection.athlete ? <Text style={styles.athlete}>{integration.connection.athlete.firstname} {integration.connection.athlete.lastname}</Text> : null}
@@ -50,6 +56,11 @@ function statusText(status, demo) {
 function healthText(reachable) {
   if (reachable === null) return "wird geprüft";
   return reachable ? "erreichbar" : "nicht erreichbar";
+}
+
+function formatDiagnosticDate(value, dateOnly = false) {
+  if (!value || !Number.isFinite(Date.parse(value))) return "nicht verfügbar";
+  return new Intl.DateTimeFormat("de-DE", dateOnly ? { dateStyle: "short" } : { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
 const styles = StyleSheet.create({
