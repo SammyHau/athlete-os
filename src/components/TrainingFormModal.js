@@ -20,6 +20,8 @@ import {
   sports,
   statusMeta,
   statuses,
+  duplicateWorkoutStep,
+  moveWorkoutStep,
   validateTrainingDraft,
 } from "../data/trainingPlan";
 import { colors, radius, spacing, typography } from "../theme";
@@ -31,8 +33,9 @@ function toFormValue(session) {
     source: session.source ?? "",
     description: session.description ?? "",
     notes: session.notes ?? "",
-    blocks: Array.isArray(session.blocks)
-      ? session.blocks.map((block) => ({ ...block }))
+    blocks: Array.isArray(session.workoutSteps) && session.workoutSteps.length
+      ? session.workoutSteps.map((step) => ({ ...step, title: step.name, detail: step.instructions, durationValue: step.durationValue ? String(step.durationValue) : "", targetMin: step.targetMin ? String(step.targetMin) : "", targetMax: step.targetMax ? String(step.targetMax) : "", repetitions: step.repetitions ? String(step.repetitions) : "" }))
+      : Array.isArray(session.blocks) ? session.blocks.map((block, index) => ({ ...block, id: `step-${index + 1}`, phase: "free", durationType: "open", durationValue: "", targetType: "none", targetMin: "", targetMax: "", unit: "", repetitions: "", recoveryStep: false }))
       : [],
   };
 }
@@ -103,13 +106,14 @@ export function TrainingFormModal({
         title: block.title.trim(),
         detail: block.detail.trim(),
       })),
+      workoutSteps: form.blocks.map((block, index) => ({ id: block.id, order: index + 1, name: block.title.trim(), phase: block.phase, durationType: block.durationType, durationValue: block.durationValue, targetType: block.targetType, targetMin: block.targetMin, targetMax: block.targetMax, unit: block.unit, repetitions: block.repetitions, recoveryStep: block.recoveryStep, instructions: block.detail.trim() })),
     });
   }
 
   function addBlock() {
     setForm((current) => ({
       ...current,
-      blocks: [...current.blocks, { title: "", detail: "" }],
+      blocks: [...current.blocks, { id: `step-${Date.now()}`, title: "", detail: "", phase: "free", durationType: "open", durationValue: "", targetType: "none", targetMin: "", targetMax: "", unit: "", repetitions: "", recoveryStep: false }],
     }));
   }
 
@@ -128,6 +132,9 @@ export function TrainingFormModal({
       blocks: current.blocks.filter((_, blockIndex) => blockIndex !== index),
     }));
   }
+
+  function moveBlock(index, direction) { setForm((current) => ({ ...current, blocks: moveWorkoutStep(current.blocks.map((block) => ({ ...block, name: block.title, instructions: block.detail })), index, direction).map((step) => ({ ...step, title: step.name, detail: step.instructions, durationValue: step.durationValue ? String(step.durationValue) : "", targetMin: step.targetMin ? String(step.targetMin) : "", targetMax: step.targetMax ? String(step.targetMax) : "", repetitions: step.repetitions ? String(step.repetitions) : "" })) })); }
+  function duplicateBlock(index) { setForm((current) => ({ ...current, blocks: duplicateWorkoutStep(current.blocks.map((block) => ({ ...block, name: block.title, instructions: block.detail })), index).map((step) => ({ ...step, title: step.name, detail: step.instructions, durationValue: step.durationValue ? String(step.durationValue) : "", targetMin: step.targetMin ? String(step.targetMin) : "", targetMax: step.targetMax ? String(step.targetMax) : "", repetitions: step.repetitions ? String(step.repetitions) : "" })) })); }
 
   return (
     <Modal
@@ -267,6 +274,10 @@ export function TrainingFormModal({
                   <View key={index} style={styles.block}>
                     <View style={styles.blockTopline}>
                       <Text style={styles.blockNumber}>BLOCK {index + 1}</Text>
+                      <View style={styles.blockActions}>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Block ${index + 1} nach oben`} disabled={index === 0} onPress={() => moveBlock(index, -1)}><Ionicons name="arrow-up" size={18} color={index === 0 ? colors.textMuted : colors.textPrimary} /></Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Block ${index + 1} nach unten`} disabled={index === form.blocks.length - 1} onPress={() => moveBlock(index, 1)}><Ionicons name="arrow-down" size={18} color={index === form.blocks.length - 1 ? colors.textMuted : colors.textPrimary} /></Pressable>
+                        <Pressable accessibilityRole="button" accessibilityLabel={`Block ${index + 1} duplizieren`} onPress={() => duplicateBlock(index)}><Ionicons name="copy-outline" size={18} color={colors.textPrimary} /></Pressable>
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={`Trainingsblock ${index + 1} entfernen`}
@@ -275,6 +286,7 @@ export function TrainingFormModal({
                       >
                         <Ionicons name="trash-outline" size={19} color={colors.danger} />
                       </Pressable>
+                      </View>
                     </View>
                     <TextInput
                       accessibilityLabel={`Titel von Trainingsblock ${index + 1}`}
@@ -293,6 +305,14 @@ export function TrainingFormModal({
                       placeholderTextColor={colors.textMuted}
                       multiline
                     />
+                    <View style={styles.stepGrid}>
+                      <TextInput accessibilityLabel={`Phase von Block ${index + 1}`} style={styles.stepInput} value={block.phase} onChangeText={(value) => updateBlock(index, "phase", value)} placeholder="Phase" placeholderTextColor={colors.textMuted} />
+                      <TextInput accessibilityLabel={`Dauerart von Block ${index + 1}`} style={styles.stepInput} value={block.durationType} onChangeText={(value) => updateBlock(index, "durationType", value)} placeholder="time/distance/open" placeholderTextColor={colors.textMuted} />
+                      <TextInput accessibilityLabel={`Dauerwert von Block ${index + 1}`} style={styles.stepInput} keyboardType="decimal-pad" value={block.durationValue} onChangeText={(value) => updateBlock(index, "durationValue", value)} placeholder="Dauerwert" placeholderTextColor={colors.textMuted} />
+                      <TextInput accessibilityLabel={`Zielart von Block ${index + 1}`} style={styles.stepInput} value={block.targetType} onChangeText={(value) => updateBlock(index, "targetType", value)} placeholder="rpe/power/pace" placeholderTextColor={colors.textMuted} />
+                      <TextInput accessibilityLabel={`Zielminimum von Block ${index + 1}`} style={styles.stepInput} keyboardType="decimal-pad" value={block.targetMin} onChangeText={(value) => updateBlock(index, "targetMin", value)} placeholder="Ziel min." placeholderTextColor={colors.textMuted} />
+                      <TextInput accessibilityLabel={`Zielmaximum von Block ${index + 1}`} style={styles.stepInput} keyboardType="decimal-pad" value={block.targetMax} onChangeText={(value) => updateBlock(index, "targetMax", value)} placeholder="Ziel max." placeholderTextColor={colors.textMuted} />
+                    </View>
                   </View>
                 ))}
               </View>
@@ -528,6 +548,7 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.textMuted,
   },
+  blockActions: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   blockInput: {
     minHeight: 44,
     paddingVertical: spacing.sm,
@@ -541,4 +562,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     textAlignVertical: "top",
   },
+  stepGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+  stepInput: { width: "47%", flexGrow: 1, minHeight: 42, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, color: colors.textPrimary, backgroundColor: colors.background },
 });

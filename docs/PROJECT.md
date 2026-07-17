@@ -70,3 +70,11 @@ Samuel Haußmann
 - The demo provider uses only artificial activities tagged as `local`.
 - The local backend listens on loopback and uses an in-memory token/activity store plus a development user header.
 - Production requires HTTPS, authenticated sessions, encrypted token persistence, a database repository, fixed redirect allowlists, and Strava webhooks.
+
+## Activity Intelligence Architecture
+
+- An AES-GCM encrypted file repository persists local OAuth, activity, cache, and resumable backfill state when a manual encryption key is configured.
+- Summary backfill, incremental sync, lazy detail loading, explicit stream loading, dual mobile/backend caches, and request deduplication minimize Strava rate-limit usage.
+- `PerformanceProfile`, central training zones, structured workout steps, confidence-based matching, and data-quality-aware comparisons form the prescription domain.
+- Training presents a searchable actual-activity history and lazy detail modal; Profile owns confirmed performance values and separate imported-data deletion.
+- See `docs/tasks/ACTIVITY_INTELLIGENCE_V1.md` and `docs/tasks/WORKOUT_PRESCRIPTION_V1.md` for contracts and operational limits.

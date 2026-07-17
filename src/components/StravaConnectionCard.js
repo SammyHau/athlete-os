@@ -22,11 +22,16 @@ export function StravaConnectionCard({ integration, onConnect, onSync, onDisconn
         </View>
       ) : null}
       {connected && integration.connection.athlete ? <Text style={styles.athlete}>{integration.connection.athlete.firstname} {integration.connection.athlete.lastname}</Text> : null}
+      {connected && !integration.connection.hasPrivateActivityScope ? <Text style={styles.scope}>Private „Nur ich“-Aktivitäten können fehlen. Erweiterte Freigabe erfordert eine bewusste erneute Autorisierung.</Text> : null}
+      {connected && !integration.connection.hasPrivateActivityScope ? <Action label="Private Aktivitäten freigeben" onPress={() => onConnect(true)} /> : null}
+      {integration.syncState?.importedCount ? <Text style={styles.meta}>{integration.syncState.importedCount} Aktivitäten importiert{integration.syncState.oldestImportedAt ? ` · seit ${new Intl.DateTimeFormat("de-DE").format(new Date(integration.syncState.oldestImportedAt))}` : ""}</Text> : null}
+      {integration.syncState?.pausedForRateLimit ? <Text style={styles.scope}>Historischer Import pausiert wegen des Strava-Rate-Limits und kann später fortgesetzt werden.</Text> : null}
+      {integration.syncState?.status === "running" ? <Action label="Historischen Import pausieren" onPress={integration.cancelBackfill} /> : null}
       {integration.lastSync ? <Text style={styles.meta}>Letzter Sync: {new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(integration.lastSync))}</Text> : null}
       {integration.lastResult ? <Text style={styles.meta}>{integration.lastResult.created} neu · {integration.lastResult.updated} aktualisiert · {integration.lastResult.skipped} übersprungen · {integration.lastResult.errors} Fehler</Text> : null}
       {integration.error ? <Text style={styles.error}>{integration.error}</Text> : null}
       <View style={styles.actions}>
-        {!connected ? <Action label="Mit Strava verbinden" onPress={onConnect} primary disabled={integration.status === "connecting"} /> : (
+        {!connected ? <Action label="Mit Strava verbinden" onPress={() => onConnect(false)} primary disabled={integration.status === "connecting"} /> : (
           <><Action label="Jetzt synchronisieren" onPress={onSync} primary disabled={integration.status === "syncing"} /><Action label="Verbindung trennen" onPress={onDisconnect} /></>
         )}
       </View>
@@ -57,6 +62,7 @@ const styles = StyleSheet.create({
   dot: { width: 9, height: 9, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted },
   dotConnected: { backgroundColor: colors.success },
   demo: { fontSize: 10, lineHeight: 14, fontWeight: "800", marginTop: spacing.lg, color: colors.warning },
+  scope: { ...typography.caption, marginTop: spacing.md, color: colors.warning },
   diagnostics: { gap: spacing.xs, marginTop: spacing.md, padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.background },
   diagnosticText: { fontSize: 10, lineHeight: 14, color: colors.textSecondary },
   athlete: { ...typography.caption, marginTop: spacing.lg, color: colors.textPrimary },

@@ -42,11 +42,20 @@ class StravaClient {
     if (!response.ok) throw apiError(response, await safeJson(response), "Strava-Verbindung konnte nicht getrennt werden.");
   }
   async getAthlete(accessToken) { return this.request("/athlete", accessToken); }
-  async listActivities(accessToken, { after, page, perPage }) {
-    return this.request(`/athlete/activities?after=${after}&page=${page}&per_page=${perPage}`, accessToken);
+  async listActivities(accessToken, { after, before, page, perPage }) {
+    const query = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    if (Number.isFinite(after)) query.set("after", String(after));
+    if (Number.isFinite(before)) query.set("before", String(before));
+    return this.request(`/athlete/activities?${query}`, accessToken);
+  }
+  async getActivity(accessToken, activityId) {
+    return this.request(`/activities/${encodeURIComponent(activityId)}?include_all_efforts=true`, accessToken);
+  }
+  async getActivityZones(accessToken, activityId) {
+    return this.request(`/activities/${encodeURIComponent(activityId)}/zones`, accessToken);
   }
   async getActivityStreams(accessToken, activityId, types) {
-    const allowed = ["time", "distance", "heartrate", "cadence", "watts", "velocity_smooth", "altitude", "latlng"];
+    const allowed = ["time", "distance", "heartrate", "cadence", "watts", "velocity_smooth", "altitude", "moving", "grade_smooth", "temp", "latlng"];
     const selected = types.filter((type) => allowed.includes(type));
     if (!selected.length) throw Object.assign(new Error("Mindestens ein gültiger Stream-Typ ist erforderlich."), { statusCode: 400 });
     return this.request(`/activities/${encodeURIComponent(activityId)}/streams?keys=${selected.join(",")}&key_by_type=true`, accessToken);

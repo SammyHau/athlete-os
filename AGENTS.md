@@ -25,6 +25,7 @@ https://docs.expo.dev/versions/v54.0.0/ before writing code.
 - `npm.cmd run test:logic`: run training selectors, CRUD, navigation, and persistence assertions
 - `npm.cmd run test:recovery`: run recovery model, readiness, load, and persistence assertions
 - `npm.cmd run test:strava`: run OAuth, mapping, sync, duplicate, and provider assertions without real API calls
+- `npm.cmd run test:intelligence`: run encrypted persistence, backfill, details, zones, workout, matching, and comparison assertions
 - `npm.cmd run backend`: start the local integration backend on the configured development host
 - `powershell.exe -ExecutionPolicy Bypass -File .\scripts\prepare-strava-local.ps1`: print safe LAN URLs and validate local env presence without exposing secrets
 - `powershell.exe -ExecutionPolicy Bypass -File .\scripts\start-athleteos-dev.ps1`: start the LAN backend and Expo in separate PowerShell windows
@@ -43,6 +44,8 @@ Use the `.cmd` shims in PowerShell when script execution policy blocks `npm.ps1`
 - Keep readiness and estimated-load weights in `src/utils/recoveryAnalytics.js`, not in UI components.
 - UI code consumes integrations through `useIntegrations`; OAuth tokens and Strava secrets must never enter `src/`, AsyncStorage, logs, or Expo public environment variables.
 - Keep actual activities separate from planned sessions and link them only through stable IDs.
+- Keep Strava summaries, lazy details, and streams in separate caches; never fetch streams during render.
+- Derive prescriptions only from confirmed performance values; missing FTP, threshold pace, or CSS must remain missing.
 - Put reusable UI in `src/components/` and data preparation in `src/data/`.
 - Use named exports for screens, components, and data helpers.
 - Keep imports grouped: external packages, local modules, then theme/data as appropriate.

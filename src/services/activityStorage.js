@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { normalizeActivities } from "../data/activity";
 
 export const ACTIVITY_STORAGE_KEY = "athleteos.activities.v1";
-export const ACTIVITY_STORAGE_VERSION = 1;
+export const ACTIVITY_STORAGE_VERSION = 2;
 
 export async function loadActivities() {
   try {
@@ -12,7 +12,7 @@ export async function loadActivities() {
     const payload = JSON.parse(stored);
     const activities = normalizeActivities(payload?.activities);
     const lastSync = payload?.lastSync === null || Number.isFinite(Date.parse(payload?.lastSync)) ? payload.lastSync : undefined;
-    if (payload?.version !== ACTIVITY_STORAGE_VERSION || !activities || lastSync === undefined) return { status: "invalid", activities: [], lastSync: null };
+    if (![1, ACTIVITY_STORAGE_VERSION].includes(payload?.version) || !activities || lastSync === undefined) return { status: "invalid", activities: [], lastSync: null };
     return { status: "loaded", activities, lastSync };
   } catch (error) {
     console.error("Synchronisierte Aktivitäten konnten nicht geladen werden.", error);

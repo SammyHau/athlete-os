@@ -26,7 +26,8 @@ class TokenService {
 }
 
 function publicConnection(token) {
-  return { connected: true, expiresAt: token.expiresAt, athlete: token.athlete ? { id: token.athlete.id, firstname: token.athlete.firstname, lastname: token.athlete.lastname, profile: token.athlete.profile } : null };
+  const scopes = Array.isArray(token.scopes) ? token.scopes : String(token.scope || "").split(",").filter(Boolean);
+  return { connected: true, expiresAt: token.expiresAt, scopes, hasPrivateActivityScope: scopes.includes("activity:read_all"), athlete: token.athlete ? { id: token.athlete.id, firstname: token.athlete.firstname, lastname: token.athlete.lastname, profile: token.athlete.profile } : null };
 }
 
 module.exports = { TokenService, publicConnection };

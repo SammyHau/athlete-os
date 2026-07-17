@@ -23,6 +23,12 @@ const config = {
   stateTtlMs: 10 * 60 * 1000,
   syncPageLimit: 10,
   syncPageSize: 100,
+  backfillPagesPerRun: 5,
+  tokenEncryptionKey: process.env.ATHLETEOS_TOKEN_ENCRYPTION_KEY || "",
+  repositoryFile: process.env.ATHLETEOS_REPOSITORY_FILE
+    ? path.resolve(__dirname, "..", process.env.ATHLETEOS_REPOSITORY_FILE)
+    : path.resolve(__dirname, "../data/integration.enc.json"),
+  webhookVerifyToken: process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || "",
 };
 
 function getMissingStravaConfig() {

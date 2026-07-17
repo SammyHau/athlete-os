@@ -4,10 +4,10 @@ import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing, typography } from "../theme";
 import { formatActivityDistance, formatActivityDuration, getActivitySportLabel } from "../utils/activityAnalytics";
 
-export function ActivityCard({ activity, compact = false }) {
-  const meta = [formatActivityDuration(activity.movingTimeSeconds ?? activity.durationSeconds), formatActivityDistance(activity.distanceMeters)].filter(Boolean);
+export function ActivityCard({ activity, compact = false, onPress }) {
+  const meta = activitySummary(activity);
   return (
-    <View style={[styles.card, compact && styles.compact]}>
+    <Pressable accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={onPress ? `Aktivitätsdetails für ${activity.name} öffnen` : undefined} onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.card, compact && styles.compact, pressed && styles.pressed]}>
       <View style={styles.icon}><Ionicons name={activityIcon(activity.sport)} size={20} color={colors.textPrimary} /></View>
       <View style={styles.content}>
         <View style={styles.topline}>
@@ -16,15 +16,28 @@ export function ActivityCard({ activity, compact = false }) {
         </View>
         <Text style={styles.title}>{activity.name}</Text>
         <Text style={styles.meta}>{meta.join(" · ")}{activity.plannedSessionId ? " · Mit Plan verknüpft" : ""}</Text>
-        {activity.externalUrl ? (
+        {activity.externalUrl && !onPress ? (
           <Pressable accessibilityRole="link" accessibilityLabel="Aktivität auf Strava ansehen" onPress={() => Linking.openURL(activity.externalUrl)} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
             <Text style={styles.linkText}>Auf Strava ansehen</Text><Ionicons name="open-outline" size={15} color={colors.textPrimary} />
           </Pressable>
         ) : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
+
+function activitySummary(activity) {
+  const duration = formatActivityDuration(activity.movingTimeSeconds ?? activity.durationSeconds);
+  const distance = formatActivityDistance(activity.distanceMeters);
+  const heartRate = activity.averageHeartRate ? `${Math.round(activity.averageHeartRate)} bpm` : null;
+  const elevation = activity.elevationGainMeters ? `${Math.round(activity.elevationGainMeters)} Hm` : null;
+  if (activity.sport === "run") return [distance, duration, pace(activity, 1000, "min/km"), heartRate, elevation].filter(Boolean);
+  if (activity.sport === "bike") return [distance, duration, activity.averageSpeed ? `${(activity.averageSpeed * 3.6).toFixed(1)} km/h` : null, activity.averagePower ? `${Math.round(activity.averagePower)} W` : null, heartRate, elevation].filter(Boolean);
+  if (activity.sport === "swim") return [distance, duration, pace(activity, 100, "min/100 m"), heartRate].filter(Boolean);
+  return [duration, heartRate, activity.calories ? `${Math.round(activity.calories)} kcal` : null].filter(Boolean);
+}
+
+function pace(activity, distanceUnit, label) { if (!activity.distanceMeters) return null; const seconds = (activity.movingTimeSeconds ?? activity.durationSeconds) / (activity.distanceMeters / distanceUnit); return `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")} ${label}`; }
 
 function activityIcon(sport) {
   return { run: "walk-outline", bike: "bicycle-outline", swim: "water-outline", strength: "barbell-outline", walk: "footsteps-outline", hike: "trail-sign-outline" }[sport] ?? "fitness-outline";

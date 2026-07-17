@@ -1,4 +1,5 @@
 import { normalizeActivity } from "../data/activity";
+import { findBestActivityMatch } from "../utils/activityMatching";
 
 const TRAINING_TO_ACTIVITY_SPORT = { run: "run", bike: "bike", swim: "swim", strength: "strength" };
 
@@ -10,8 +11,9 @@ export function reconcileActivities(existing, incoming, plannedSessions) {
     if (!activity) { result.errors += 1; return; }
     const key = `${activity.provider}:${activity.externalId}`;
     const previous = byKey.get(key);
-    const plannedSessionId = previous?.plannedSessionId ?? findPlannedSession(activity, plannedSessions, [...byKey.values()]);
-    const next = { ...previous, ...activity, plannedSessionId };
+    const match = previous?.plannedSessionId ? null : findBestActivityMatch(activity, plannedSessions.filter((session) => !new Set([...byKey.values()].map((item) => item.plannedSessionId).filter(Boolean)).has(session.id)));
+    const plannedSessionId = previous?.plannedSessionId ?? (match?.status === "automatic" ? match.sessionId : null);
+    const next = { ...previous, ...activity, plannedSessionId, matchStatus: previous?.matchStatus ?? (plannedSessionId ? "automatic" : match?.status ?? "unmatched"), matchScore: match?.score ?? previous?.matchScore ?? null };
     if (!previous) result.created += 1;
     else if (activityFingerprint(previous) === activityFingerprint(next)) result.skipped += 1;
     else result.updated += 1;

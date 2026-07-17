@@ -28,6 +28,8 @@
 - Automatic activity sync
 - Activity history
 - Weekly statistics
+- Activity Intelligence V1: resumable history, lazy details and streams, matching, comparisons, and encrypted local backend persistence
+- Workout Prescription V1: confirmed performance profile, central zones, and structured workout steps
 - Replace local training repository with authenticated sync while retaining the current provider contract
 
 ## Sprint 5 - Nutrition

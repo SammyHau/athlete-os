@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -13,6 +14,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { TrainingDetailModal } from "../components/TrainingDetailModal";
 import { ActivityCard } from "../components/ActivityCard";
+import { ActivityDetailModal } from "../components/ActivityDetailModal";
+import { FilterChips } from "../components/FilterChips";
 import { TrainingFormModal } from "../components/TrainingFormModal";
 import { TrainingSessionCard } from "../components/TrainingSessionCard";
 import { TrainingStateView } from "../components/TrainingStateView";
@@ -48,6 +51,10 @@ export function TrainingScreen({ navigation, route }) {
   const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()));
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [formState, setFormState] = useState(null);
+  const [selectedActivityId, setSelectedActivityId] = useState(null);
+  const [historySport, setHistorySport] = useState("all");
+  const [historyQuery, setHistoryQuery] = useState("");
+  const [historyLimit, setHistoryLimit] = useState(20);
   const lastRequestId = useRef(null);
   const weekDates = useMemo(
     () => getWeekDates(weekReference),
@@ -69,6 +76,8 @@ export function TrainingScreen({ navigation, route }) {
     (session) => session.id === selectedSessionId,
   ) ?? null;
   const selectedDay = weekDates.find((day) => day.isoDate === selectedDate)?.date;
+  const selectedActivity = integration.activities.find((activity) => activity.id === selectedActivityId) ?? null;
+  const history = integration.activities.filter((activity) => activity.syncStatus !== "deleted" && (historySport === "all" || activity.sport === historySport) && activity.name.toLowerCase().includes(historyQuery.trim().toLowerCase())).slice(0, historyLimit);
 
   useEffect(() => {
     const request = route.params;
@@ -267,10 +276,18 @@ export function TrainingScreen({ navigation, route }) {
           <View style={styles.actualSection}>
             <Text style={styles.dayEyebrow}>TATSÄCHLICH ABSOLVIERT</Text>
             <View style={styles.sessionList}>
-              {selectedActivities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
+              {selectedActivities.map((activity) => <ActivityCard key={activity.id} activity={activity} onPress={() => { setSelectedActivityId(activity.id); integration.loadActivityDetails(activity); }} />)}
             </View>
           </View>
         ) : null}
+
+        <View style={styles.historySection}>
+          <Text style={styles.dayEyebrow}>AKTIVITÄTSHISTORIE</Text>
+          <TextInput accessibilityLabel="Aktivitäten durchsuchen" value={historyQuery} onChangeText={setHistoryQuery} placeholder="Nach Trainingsname suchen" placeholderTextColor={colors.textMuted} style={styles.searchInput} />
+          <FilterChips label="Sportart" value={historySport} onChange={setHistorySport} options={[{ value: "all", label: "Alle" }, { value: "run", label: "Laufen" }, { value: "bike", label: "Rad" }, { value: "swim", label: "Schwimmen" }, { value: "strength", label: "Kraft" }]} />
+          {history.length ? <View style={styles.sessionList}>{history.map((activity) => <ActivityCard key={`history-${activity.id}`} activity={activity} onPress={() => { setSelectedActivityId(activity.id); integration.loadActivityDetails(activity); }} />)}</View> : <Text style={styles.emptyText}>Keine tatsächlichen Aktivitäten entsprechen diesem Filter.</Text>}
+          {history.length < integration.activities.length ? <Pressable accessibilityRole="button" accessibilityLabel="Weitere Aktivitäten laden" onPress={() => setHistoryLimit((value) => value + 20)} style={styles.loadMore}><Text style={styles.progressLinkText}>Weitere Aktivitäten laden</Text></Pressable> : null}
+        </View>
       </ScrollView>
 
       <TrainingDetailModal
@@ -292,6 +309,7 @@ export function TrainingScreen({ navigation, route }) {
           onSave={saveForm}
         />
       ) : null}
+      <ActivityDetailModal activity={selectedActivity} cache={selectedActivity ? integration.activityDetails[selectedActivity.id] : null} error={selectedActivity ? integration.detailErrors[selectedActivity.id] : null} visible={Boolean(selectedActivity)} onClose={() => setSelectedActivityId(null)} onLoad={() => integration.loadActivityDetails(selectedActivity)} onLoadStreams={() => integration.loadActivityDetails(selectedActivity, { streams: true })} onRefresh={() => integration.loadActivityDetails(selectedActivity, { streams: true, refresh: true })} matchingSessions={selectedActivity ? sessions.filter((session) => session.date === selectedActivity.startDate && session.sport === selectedActivity.sport) : []} onMatch={(sessionId) => integration.setActivityMatch(selectedActivity.id, sessionId)} />
     </SafeAreaView>
   );
 }
@@ -318,6 +336,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.huge,
   },
+  historySection: { marginTop: spacing.xxl, gap: spacing.md },
+  searchInput: { minHeight: 48, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, backgroundColor: colors.surface, color: colors.textPrimary },
+  loadMore: { minHeight: 48, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill },
   header: {
     flexDirection: "row",
     alignItems: "center",

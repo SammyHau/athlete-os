@@ -171,7 +171,8 @@ async function run() {
   check((await repository.list("user-1", "strava")).length, 3, "Repository enthält eindeutige Aktivitäten");
   const incremental = await syncService.sync("user-1", new Date("2026-07-19T00:00:00Z"));
   check(incremental.updated, 3, "Inkrementeller Sync aktualisiert vorhandene IDs");
-  check(requestedAfter[2] > requestedAfter[0], true, "Inkrementeller Sync beginnt nach dem Vollsync-Zeitraum");
+  check(requestedAfter[0], undefined, "Historischer Vollsync besitzt keine künstliche 90-Tage-Grenze");
+  check(Number.isFinite(requestedAfter[2]), true, "Inkrementeller Sync beginnt am letzten erfolgreichen Sync");
 
   const demo = assertIntegrationProvider(createLocalProvider());
   check((await demo.getConnectionStatus()).connected, false, "Demo startet getrennt");

@@ -16,6 +16,10 @@ export function createLocalProvider() {
       return { activities: createDemoActivities(new Date(lastSync)), lastSuccessfulSync: lastSync, backendResult: { created: 3, updated: 0, skipped: 0, errors: 0 } };
     },
     async getLastSync() { return lastSync; },
+    async getActivityDetail() { throw new Error("Für Demo-Aktivitäten sind keine zusätzlichen Detaildaten verfügbar."); },
+    async getActivityStreams() { return { streams: {}, cached: true }; },
+    async deleteImportedActivities() { return { deleted: true }; },
+    async cancelBackfill() { return { backfillPausedByUser: true }; },
     normalizeActivity,
   };
 }

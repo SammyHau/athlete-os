@@ -20,7 +20,7 @@ Provider implementieren `connect`, `disconnect`, `getConnectionStatus`, `syncAct
 
 ## Mapping und Synchronisation
 
-- Der erste Sync lädt höchstens 90 Tage, spätere Syncs beginnen beim letzten erfolgreichen Zeitpunkt.
+- Der erste Sync lädt Zusammenfassungen der gesamten erreichbaren Historie in fortsetzbaren Seiten. Spätere Syncs beginnen überlappend beim letzten erfolgreichen Zeitpunkt.
 - Pagination ist begrenzt; Streams werden nur explizit abgerufen.
 - Primäre Dublette: Provider plus externe ID.
 - Optionale Plan-Zuordnung nutzt Datum, Sportart und Dauer. Die geplante Einheit bleibt bestehen.
@@ -56,7 +56,7 @@ Provider implementieren `connect`, `disconnect`, `getConnectionStatus`, `syncAct
 1. Im Profil unter **Verbundene Dienste** auf **Mit Strava verbinden** tippen.
 2. Die Strava-Berechtigungen im externen Browser bestätigen. AthleteOS fordert standardmäßig nur `read` und `activity:read` an.
 3. Nach dem Rücksprung zu Expo Go prüfen, dass der Status **Verbunden** lautet. Tokens werden dabei nicht an die App übertragen.
-4. **Jetzt synchronisieren** antippen. Der erste Sync lädt höchstens 90 Tage.
+4. **Jetzt synchronisieren** antippen. Der erste Sync lädt Zusammenfassungen seitenweise; bei großen Historien den Import über weitere Syncs fortsetzen.
 5. Ergebniszähler im Profil sowie tatsächliche Aktivitäten auf Home, Training und Fortschritt prüfen.
 
 ### Fehlerdiagnose
@@ -80,9 +80,9 @@ Provider implementieren `connect`, `disconnect`, `getConnectionStatus`, `syncAct
 ## Grenzen
 
 - Kein echter OAuth-Aufruf ohne manuell konfigurierte Strava-Zugangsdaten.
-- Lokales Backend verliert Tokens bei Neustart.
-- V1 synchronisiert per Nutzeraktion; keine Webhooks oder Hintergrund-Synchronisation.
-- Streams werden vorbereitet, aber nicht automatisch geladen.
+- Ohne `ATHLETEOS_TOKEN_ENCRYPTION_KEY` bleibt der lokale Store absichtlich flüchtig; mit Schlüssel übersteht die verschlüsselte Ablage Backend-Neustarts.
+- Synchronisation erfolgt per Nutzeraktion. Webhook-Routen und Queue-Vertrag sind vorbereitet, werden lokal aber nicht abonniert.
+- Streams werden ausschließlich für sichtbare Analysen manuell und gecacht geladen.
 
 ## Meilensteine
 

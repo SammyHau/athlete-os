@@ -3,12 +3,14 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { sportMeta, statusMeta } from "../data/trainingPlan";
 import { colors, radius, spacing, typography } from "../theme";
+import { summarizeWorkoutPrescription } from "../utils/workoutPrescription";
 
 export function TrainingSessionCard({ session, onPress, linkedActivity = null }) {
   const sport = sportMeta[session.sport];
   const status = statusMeta[session.status];
   const completed = session.status === "completed" || Boolean(linkedActivity);
   const visibleStatus = linkedActivity ? "Mit Aktivität verknüpft" : status.label;
+  const prescription = summarizeWorkoutPrescription(session);
 
   return (
     <Pressable
@@ -42,6 +44,7 @@ export function TrainingSessionCard({ session, onPress, linkedActivity = null })
           {session.source ? ` · ${session.source}` : ""}
           {linkedActivity ? ` · ${linkedActivity.provider === "strava" ? "Strava" : "Demo"}` : ""}
         </Text>
+        {prescription ? <Text style={styles.prescription}>{prescription}</Text> : null}
       </View>
 
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -116,4 +119,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.textSecondary,
   },
+  prescription: { ...typography.caption, marginTop: spacing.sm, color: colors.textPrimary },
 });

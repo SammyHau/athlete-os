@@ -28,6 +28,10 @@ function createUnavailableProvider(mode) {
     getConnectionStatus: fail,
     syncActivities: fail,
     getLastSync: fail,
+    getActivityDetail: fail,
+    getActivityStreams: fail,
+    deleteImportedActivities: fail,
+    cancelBackfill: fail,
     normalizeActivity: (activity) => activity,
   };
 }

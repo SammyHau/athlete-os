@@ -5,10 +5,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Card } from "../components/Card";
 import { StravaConnectionCard } from "../components/StravaConnectionCard";
+import { PerformanceProfileCard } from "../components/PerformanceProfileCard";
 import { TrainingStateView } from "../components/TrainingStateView";
 import { useRecovery } from "../context/RecoveryContext";
 import { useIntegrations } from "../context/IntegrationContext";
+import { usePerformance } from "../context/PerformanceContext";
 import { toISODate } from "../data/trainingPlan";
+import { suggestPerformanceMetrics } from "../data/performanceProfile";
 import { colors, radius, spacing, typography } from "../theme";
 import { addDays } from "../utils/trainingAnalytics";
 import { getPersonalBaselines } from "../utils/recoveryAnalytics";
@@ -16,6 +19,7 @@ import { getPersonalBaselines } from "../utils/recoveryAnalytics";
 export function ProfileScreen() {
   const recovery = useRecovery();
   const integration = useIntegrations();
+  const performance = usePerformance();
   const [hours, setHours] = useState("7");
   const [minutes, setMinutes] = useState("30");
   const tomorrow = toISODate(addDays(new Date(), 1));
@@ -55,6 +59,8 @@ export function ProfileScreen() {
     ]);
   }
 
+  function confirmDeleteActivities() { Alert.alert("Importierte Aktivitäten löschen?", "Die Strava-Verbindung bleibt bestehen. Nur lokal und im lokalen AthleteOS-Backend importierte Aktivitätsdaten werden entfernt.", [{ text: "Abbrechen", style: "cancel" }, { text: "Daten löschen", style: "destructive", onPress: integration.deleteImportedActivities }]); }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar style="dark" />
@@ -66,6 +72,10 @@ export function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Verbundene Dienste</Text>
         <StravaConnectionCard integration={integration} onConnect={integration.connect} onSync={integration.syncActivities} onDisconnect={confirmDisconnect} />
+        {integration.activities.length ? <Pressable accessibilityRole="button" accessibilityLabel="Importierte Aktivitätsdaten löschen" onPress={confirmDeleteActivities} style={({ pressed }) => [styles.dataDeleteButton, pressed && styles.pressed]}><Text style={styles.resetText}>Importierte Aktivitätsdaten löschen</Text></Pressable> : null}
+
+        <Text style={styles.sectionTitle}>Leistungsprofil</Text>
+        <PerformanceProfileCard performance={performance} suggestions={suggestPerformanceMetrics(integration.activities)} />
 
         <Text style={styles.sectionTitle}>Recovery-Einstellungen</Text>
         <Card style={styles.card}>
@@ -137,6 +147,7 @@ const styles = StyleSheet.create({
   toggleDescription: { fontSize: 11, lineHeight: 15, marginTop: spacing.xs, color: colors.textSecondary },
   divider: { height: 1, marginVertical: spacing.md, backgroundColor: colors.border },
   resetButton: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: spacing.lg, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.danger },
+  dataDeleteButton: { minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: spacing.sm },
   resetText: { ...typography.caption, color: colors.danger },
   pressed: { opacity: 0.68 },
 });

@@ -12,6 +12,9 @@ export const sports = [
 export const statuses = ["planned", "completed", "skipped"];
 
 export const intensities = ["Sehr locker", "Locker", "Moderat", "Hoch"];
+export const workoutPhases = ["warmup", "work", "recovery", "cooldown", "free"];
+export const workoutDurationTypes = ["time", "distance", "repetitions", "open"];
+export const workoutTargetTypes = ["pace", "speed", "heartRate", "heartRateZone", "power", "powerZone", "cadence", "swimPace", "rpe", "none"];
 
 export const sportMeta = {
   swim: { label: "Schwimmen", icon: "water-outline" },
@@ -79,6 +82,7 @@ export function normalizeTrainingSession(value) {
       title: typeof block?.title === "string" ? block.title.trim() : "",
       detail: typeof block?.detail === "string" ? block.detail.trim() : "",
     })),
+    workoutSteps: normalizeWorkoutSteps(value.workoutSteps ?? value.blocks),
     notes: typeof value.notes === "string" ? value.notes.trim() : "",
   };
 }
@@ -172,6 +176,7 @@ export function createDuplicateDraft(session) {
     source: session.source,
     description: session.description,
     blocks: session.blocks.map((block) => ({ ...block })),
+    workoutSteps: session.workoutSteps.map((step) => ({ ...step })),
     notes: session.notes,
   };
 }
@@ -191,9 +196,32 @@ export function createEmptyTrainingSession(date = toISODate(new Date())) {
     source: "AthleteOS",
     description: "",
     blocks: [],
+    workoutSteps: [],
     notes: "",
   };
 }
+
+export function normalizeWorkoutSteps(values) {
+  if (!Array.isArray(values)) return [];
+  return values.map((value, index) => ({
+    id: typeof value?.id === "string" && value.id ? value.id : `step-${index + 1}`,
+    order: index + 1,
+    name: typeof value?.name === "string" ? value.name.trim() : (typeof value?.title === "string" ? value.title.trim() : ""),
+    phase: workoutPhases.includes(value?.phase) ? value.phase : "free",
+    durationType: workoutDurationTypes.includes(value?.durationType) ? value.durationType : "open",
+    durationValue: optionalPositive(value?.durationValue),
+    targetType: workoutTargetTypes.includes(value?.targetType) ? value.targetType : "none",
+    targetMin: optionalPositive(value?.targetMin), targetMax: optionalPositive(value?.targetMax),
+    unit: typeof value?.unit === "string" ? value.unit.trim() : "",
+    repetitions: optionalPositive(value?.repetitions),
+    recoveryStep: Boolean(value?.recoveryStep),
+    instructions: typeof value?.instructions === "string" ? value.instructions.trim() : (typeof value?.detail === "string" ? value.detail.trim() : ""),
+  }));
+}
+
+export function moveWorkoutStep(steps, index, direction) { const target = index + direction; if (target < 0 || target >= steps.length) return steps; const next = steps.map((step) => ({ ...step })); [next[index], next[target]] = [next[target], next[index]]; return normalizeWorkoutSteps(next); }
+export function duplicateWorkoutStep(steps, index) { const source = steps[index]; if (!source) return steps; const copy = { ...source, id: `step-${Date.now()}-${index}`, name: source.name ? `${source.name} (Kopie)` : "Kopie" }; return normalizeWorkoutSteps([...steps.slice(0, index + 1), copy, ...steps.slice(index + 1)]); }
+function optionalPositive(value) { if (value === null || value === undefined || value === "") return null; const number = Number(value); return Number.isFinite(number) && number > 0 ? number : null; }
 
 export function addWeeks(date, amount) {
   const result = new Date(date);
