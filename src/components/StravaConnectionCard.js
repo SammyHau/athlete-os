@@ -14,6 +14,13 @@ export function StravaConnectionCard({ integration, onConnect, onSync, onDisconn
         <View style={[styles.dot, connected && styles.dotConnected]} />
       </View>
       {integration.demo ? <Text style={styles.demo}>DEMO-MODUS · ausschließlich künstliche Aktivitäten</Text> : null}
+      {__DEV__ ? (
+        <View style={styles.diagnostics}>
+          <Text style={styles.diagnosticText}>Modus: {integration.diagnostics.mode}</Text>
+          <Text style={styles.diagnosticText}>API: {integration.diagnostics.apiUrl}</Text>
+          <Text style={styles.diagnosticText}>Backend: {healthText(integration.diagnostics.backendReachable)}</Text>
+        </View>
+      ) : null}
       {connected && integration.connection.athlete ? <Text style={styles.athlete}>{integration.connection.athlete.firstname} {integration.connection.athlete.lastname}</Text> : null}
       {integration.lastSync ? <Text style={styles.meta}>Letzter Sync: {new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(integration.lastSync))}</Text> : null}
       {integration.lastResult ? <Text style={styles.meta}>{integration.lastResult.created} neu · {integration.lastResult.updated} aktualisiert · {integration.lastResult.skipped} übersprungen · {integration.lastResult.errors} Fehler</Text> : null}
@@ -35,6 +42,11 @@ function statusText(status, demo) {
   return { loading: "Status wird geladen", disconnected: "Nicht verbunden", connecting: "Verbindung wird hergestellt", connected: demo ? "Demo verbunden" : "Verbunden", syncing: "Synchronisierung läuft", synced: "Synchronisiert", error: "Fehler", expired: "Verbindung abgelaufen" }[status] ?? "Nicht verbunden";
 }
 
+function healthText(reachable) {
+  if (reachable === null) return "wird geprüft";
+  return reachable ? "erreichbar" : "nicht erreichbar";
+}
+
 const styles = StyleSheet.create({
   card: { padding: spacing.xl, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
@@ -45,6 +57,8 @@ const styles = StyleSheet.create({
   dot: { width: 9, height: 9, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted },
   dotConnected: { backgroundColor: colors.success },
   demo: { fontSize: 10, lineHeight: 14, fontWeight: "800", marginTop: spacing.lg, color: colors.warning },
+  diagnostics: { gap: spacing.xs, marginTop: spacing.md, padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.background },
+  diagnosticText: { fontSize: 10, lineHeight: 14, color: colors.textSecondary },
   athlete: { ...typography.caption, marginTop: spacing.lg, color: colors.textPrimary },
   meta: { fontSize: 11, lineHeight: 16, marginTop: spacing.sm, color: colors.textSecondary },
   error: { ...typography.caption, marginTop: spacing.md, color: colors.danger },

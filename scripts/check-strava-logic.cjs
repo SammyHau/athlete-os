@@ -20,7 +20,9 @@ Module._load = (request, parent, isMain) => request === "@react-native-async-sto
     setItem: async (key, value) => memory.set(key, value),
     removeItem: async (key) => memory.delete(key),
   } }
-  : originalLoad(request, parent, isMain);
+  : request === "expo-linking"
+    ? { createURL: () => "exp://192.168.2.100:8081/--/integration/strava", openURL: async () => true, getInitialURL: async () => null, addEventListener: () => ({ remove() {} }) }
+    : originalLoad(request, parent, isMain);
 
 const { OAuthStateStore } = require("../backend/src/oauthStateStore.cjs");
 const { normalizeStravaActivity } = require("../backend/src/stravaMapping.cjs");
@@ -36,6 +38,10 @@ const { normalizeActivity } = require("../src/data/activity");
 const activityStorage = require("../src/services/activityStorage");
 const { createLocalProvider } = require("../src/integrations/local/localProvider");
 const { assertIntegrationProvider } = require("../src/integrations/providerContract");
+const { resolveIntegrationProviderType } = require("../src/integrations/providerFactory");
+const { createStravaProvider } = require("../src/integrations/strava/stravaProvider");
+const { parseStravaCallback } = require("../src/integrations/strava/oauthCallback");
+const { createIntegrationRequest } = require("../src/integrations/strava/stravaApi");
 
 let count = 0;
 function check(actual, expected, message) { assert.deepEqual(actual, expected, message); count += 1; }
@@ -51,6 +57,28 @@ function rawActivity(id, changes = {}) {
 }
 
 async function run() {
+  check(resolveIntegrationProviderType("demo"), "demo", "Nur der explizite Demo-Modus wählt den Demo-Provider");
+  check(resolveIntegrationProviderType("strava"), "strava", "Strava-Modus wählt ausschließlich den Strava-Provider");
+  check(resolveIntegrationProviderType(""), "unavailable", "Fehlender Modus aktiviert keinen Demo-Fallback");
+  check(parseStravaCallback("athleteos://integration/strava?status=cancelled"), "cancelled", "OAuth-Abbruch wird als Abbruch erkannt");
+  check(parseStravaCallback("athleteos://integration/strava?status=connected"), "connected", "Nur der erfolgreiche Callback meldet verbunden");
+  let openedAuthorizationUrl = null;
+  const realProvider = createStravaProvider({
+    request: async (requestPath) => {
+      check(requestPath.startsWith("/integrations/strava/oauth/start?mobileRedirect="), true, "Connect ruft den OAuth-Start-Endpunkt auf");
+      return { authorizationUrl: "https://www.strava.com/oauth/authorize?client_id=fixture" };
+    },
+    createMobileRedirect: () => "exp://192.168.2.100:8081/--/integration/strava",
+    openAuthorizationUrl: async (url) => { openedAuthorizationUrl = url; },
+  });
+  check((await realProvider.connect()).connected, false, "OAuth-Start simuliert keinen verbundenen Zustand");
+  check(openedAuthorizationUrl, "https://www.strava.com/oauth/authorize?client_id=fixture", "Connect öffnet ausschließlich die Backend-Autorisierungs-URL");
+  await rejects(createStravaProvider({ request: async () => { throw Object.assign(new Error("Backend nicht erreichbar"), { code: "offline" }); } }).connect(), (error) => error.code === "offline", "Backendfehler fällt nicht auf Demo zurück");
+  await rejects(createIntegrationRequest("")("/health"), (error) => error.code === "not_configured", "Fehlende API-URL wird verständlich gemeldet");
+  await rejects(createIntegrationRequest("http://192.0.2.1:8787", async () => { throw new Error("offline"); })("/health"), (error) => error.code === "offline", "Unerreichbares Backend wird verständlich gemeldet");
+  const health = await createIntegrationRequest("http://192.168.2.100:8787", async () => response(200, { ok: true, stravaConfigured: true }))("/health");
+  check(health.ok, true, "Erreichbarer Backend-Healthcheck wird erkannt");
+
   const mapped = normalizeStravaActivity(rawActivity(123), "2026-07-17T10:00:00Z");
   check(mapped.externalId, "123", "Externe ID wird normalisiert");
   check(mapped.provider, "strava", "Provider wird gesetzt");

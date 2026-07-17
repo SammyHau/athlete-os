@@ -3,14 +3,18 @@ import * as Linking from "expo-linking";
 import { normalizeActivity } from "../../data/activity";
 import { integrationRequest } from "./stravaApi";
 
-export function createStravaProvider() {
+export function createStravaProvider({
+  request = integrationRequest,
+  createMobileRedirect = () => Linking.createURL("integration/strava"),
+  openAuthorizationUrl = Linking.openURL,
+} = {}) {
   return {
     id: "strava",
     demo: false,
     async connect() {
-      const mobileRedirect = Linking.createURL("integration/strava");
-      const result = await integrationRequest(`/integrations/strava/oauth/start?mobileRedirect=${encodeURIComponent(mobileRedirect)}`);
-      await Linking.openURL(result.authorizationUrl);
+      const mobileRedirect = createMobileRedirect();
+      const result = await request(`/integrations/strava/oauth/start?mobileRedirect=${encodeURIComponent(mobileRedirect)}`);
+      await openAuthorizationUrl(result.authorizationUrl);
       return { connected: false, pending: true };
     },
     async disconnect() { return integrationRequest("/integrations/strava/connection", { method: "DELETE" }); },

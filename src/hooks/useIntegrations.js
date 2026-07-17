@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Linking from "expo-linking";
 
-import { createLocalProvider } from "../integrations/local/localProvider";
+import { integrationApiUrl, integrationMode } from "../integrations/integrationConfig";
 import { assertIntegrationProvider } from "../integrations/providerContract";
-import { isStravaApiConfigured } from "../integrations/strava/stravaApi";
-import { createStravaProvider } from "../integrations/strava/stravaProvider";
+import { createConfiguredProvider } from "../integrations/providerFactory";
+import { integrationRequest } from "../integrations/strava/stravaApi";
+import { parseStravaCallback } from "../integrations/strava/oauthCallback";
 import { reconcileActivities } from "../services/activityRepository";
 import { loadActivities, saveActivities } from "../services/activityStorage";
 
 export function useIntegrationsState(sessions) {
-  const realMode = process.env.EXPO_PUBLIC_INTEGRATION_MODE === "strava" && isStravaApiConfigured();
-  const provider = useMemo(() => assertIntegrationProvider(realMode ? createStravaProvider() : createLocalProvider()), [realMode]);
+  const provider = useMemo(() => assertIntegrationProvider(createConfiguredProvider()), []);
   const [activities, setActivities] = useState([]);
   const [connection, setConnection] = useState({ connected: false, demo: provider.demo });
   const [status, setStatus] = useState("loading");
   const [lastSync, setLastSync] = useState(null);
   const [lastResult, setLastResult] = useState(null);
   const [error, setError] = useState(null);
+  const [backendReachable, setBackendReachable] = useState(null);
   const activitiesRef = useRef([]);
 
   const refreshStatus = useCallback(async () => {
@@ -45,18 +46,25 @@ export function useIntegrationsState(sessions) {
   }, [refreshStatus]);
 
   useEffect(() => {
+    if (integrationMode !== "strava" || !integrationApiUrl) {
+      setBackendReachable(false);
+      return;
+    }
+    let active = true;
+    integrationRequest("/health")
+      .then(() => { if (active) setBackendReachable(true); })
+      .catch(() => { if (active) setBackendReachable(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (provider.demo) return undefined;
     function handleCallback(url) {
-      let callbackUrl;
-      try {
-        callbackUrl = new URL(url);
-      } catch {
-        return;
-      }
-      if (!callbackUrl.pathname.endsWith("/integration/strava") && callbackUrl.pathname !== "/strava") return;
-      const result = callbackUrl.searchParams.get("status");
+      const result = parseStravaCallback(url);
+      if (!result) return;
       if (result === "connected") refreshStatus();
       else {
+        setConnection({ connected: false, demo: false });
         setStatus(result === "cancelled" ? "disconnected" : "error");
         setError(result === "cancelled" ? "Strava-Verbindung wurde abgebrochen." : "Strava-Verbindung konnte nicht hergestellt werden.");
       }
@@ -69,8 +77,7 @@ export function useIntegrationsState(sessions) {
   const connect = useCallback(async () => {
     setStatus("connecting"); setError(null);
     try {
-      const next = await provider.connect();
-      if (next.connected) { setConnection(next); setStatus("connected"); }
+      await provider.connect();
     } catch (connectError) { setStatus("error"); setError(connectError.message); }
   }, [provider]);
 
@@ -97,5 +104,10 @@ export function useIntegrationsState(sessions) {
     } catch (syncError) { setStatus(syncError.code === "connection_expired" ? "expired" : "error"); setError(syncError.message); return null; }
   }, [provider, sessions]);
 
-  return { providerId: provider.id, demo: provider.demo, activities, connection, status, lastSync, lastResult, error, connect, disconnect, syncActivities, refreshStatus };
+  return {
+    providerId: provider.id,
+    demo: provider.demo,
+    diagnostics: { mode: integrationMode || "nicht konfiguriert", apiUrl: integrationApiUrl || "nicht konfiguriert", backendReachable },
+    activities, connection, status, lastSync, lastResult, error, connect, disconnect, syncActivities, refreshStatus,
+  };
 }
